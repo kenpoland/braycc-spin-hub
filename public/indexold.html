@@ -124,11 +124,11 @@
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pace Group</label>
                         <select id="filter-pace" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-clubPurple focus:outline-none">
                             <option value="ALL">All Pace Groups</option>
-                            <option value="Red">Red — Leisurely (20–22 kph)</option>
-                            <option value="Orange">Orange — Moderate (22–24 kph)</option>
-                            <option value="Yellow">Yellow — Steady (24–26 kph)</option>
-                            <option value="Green">Green — Brisk (26–28 kph)</option>
-                            <option value="Blue">Blue — Fastest (28–30 kph)</option>
+                            <option value="Red">Red (Fastest)</option>
+                            <option value="Orange">Orange (Brisk)</option>
+                            <option value="Yellow">Yellow (Steady)</option>
+                            <option value="Green">Green (Moderate)</option>
+                            <option value="Blue">Blue (Leisurely)</option>
                         </select>
                     </div>
                 </div>
@@ -294,28 +294,28 @@
                             <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
                                 <button type="button" onclick="selectPace('Red')" id="pace-opt-Red" class="pace-btn-Red p-3 rounded-lg border text-left transition font-semibold">
                                     <div class="text-xs uppercase font-extrabold text-red-600">Red Group</div>
-                                    <div class="text-sm font-bold mt-1">Leisurely</div>
-                                    <div class="text-[10px] text-slate-500">20-22 kph avg</div>
+                                    <div class="text-sm font-bold mt-1">Fast / Race</div>
+                                    <div class="text-[10px] text-slate-500">28+ km/h avg</div>
                                 </button>
                                 <button type="button" onclick="selectPace('Orange')" id="pace-opt-Orange" class="pace-btn-Orange p-3 rounded-lg border text-left transition font-semibold">
                                     <div class="text-xs uppercase font-extrabold text-orange-600">Orange</div>
-                                    <div class="text-sm font-bold mt-1">Moderate</div>
-                                    <div class="text-[10px] text-slate-500">22-24 kph avg</div>
+                                    <div class="text-sm font-bold mt-1">Brisk</div>
+                                    <div class="text-[10px] text-slate-500">25-28 km/h avg</div>
                                 </button>
                                 <button type="button" onclick="selectPace('Yellow')" id="pace-opt-Yellow" class="pace-btn-Yellow selected p-3 rounded-lg border text-left transition font-semibold">
                                     <div class="text-xs uppercase font-extrabold text-yellow-600">Yellow</div>
                                     <div class="text-sm font-bold mt-1">Steady</div>
-                                    <div class="text-[10px] text-slate-500">24-26 kph avg</div>
+                                    <div class="text-[10px] text-slate-500">22-25 km/h avg</div>
                                 </button>
                                 <button type="button" onclick="selectPace('Green')" id="pace-opt-Green" class="pace-btn-Green p-3 rounded-lg border text-left transition font-semibold">
                                     <div class="text-xs uppercase font-extrabold text-green-600">Green</div>
-                                    <div class="text-sm font-bold mt-1">Brisk</div>
-                                    <div class="text-[10px] text-slate-500">26-28 kph avg</div>
+                                    <div class="text-sm font-bold mt-1">Moderate</div>
+                                    <div class="text-[10px] text-slate-500">19-22 km/h avg</div>
                                 </button>
                                 <button type="button" onclick="selectPace('Blue')" id="pace-opt-Blue" class="pace-btn-Blue p-3 rounded-lg border text-left transition font-semibold">
                                     <div class="text-xs uppercase font-extrabold text-blue-600">Blue</div>
-                                    <div class="text-sm font-bold mt-1">Fastest</div>
-                                    <div class="text-[10px] text-slate-500">28-30 kph avg</div>
+                                    <div class="text-sm font-bold mt-1">Leisure</div>
+                                    <div class="text-[10px] text-slate-500">&lt;19 km/h avg</div>
                                 </button>
                             </div>
                         </div>
