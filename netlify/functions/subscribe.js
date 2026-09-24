@@ -8,16 +8,24 @@ const cors = {
 
 const STORE_NAME = 'braycc';
 
-export async function handler(event) {
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+export default async (req, context) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('', { status: 204, headers: cors });
+  }
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { ...cors, 'Content-Type': 'application/json' }
+    });
   }
 
   try {
-    const sub = JSON.parse(event.body || '{}');
+    const sub = await req.json();
     if (!sub.endpoint || !sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
-      return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'Invalid subscription' }) };
+      return new Response(JSON.stringify({ error: 'Invalid subscription' }), {
+        status: 400,
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
     }
 
     const store = getStore(STORE_NAME);
@@ -33,13 +41,15 @@ export async function handler(event) {
       await store.setJSON('data', data);
     }
 
-    return {
-      statusCode: 201,
-      headers: { ...cors, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ok: true, count: data.subscriptions.length })
-    };
+    return new Response(JSON.stringify({ ok: true, count: data.subscriptions.length }), {
+      status: 201,
+      headers: { ...cors, 'Content-Type': 'application/json' }
+    });
   } catch (err) {
     console.error('subscribe.js error:', err);
-    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: err.message }) };
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...cors, 'Content-Type': 'application/json' }
+    });
   }
-}
+};

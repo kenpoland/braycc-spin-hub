@@ -14,15 +14,21 @@ function initVapid() {
 
 const STORE_NAME = 'braycc';
 
-export async function handler(event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 
   try {
-    const { secret, title, body, url } = JSON.parse(event.body || '{}');
+    const { secret, title, body, url } = await req.json();
     if (secret !== process.env.PUSH_SEND_SECRET) {
-      return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     initVapid();
@@ -41,7 +47,6 @@ export async function handler(event) {
       subs.map(s => webpush.sendNotification(s, payload))
     );
 
-    // Prune dead subscriptions (410 Gone / 404 Not Found)
     const alive = subs.filter((_, i) => {
       const res = results[i];
       if (res.status === 'rejected') {
@@ -56,16 +61,19 @@ export async function handler(event) {
       await store.setJSON('data', data);
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        sent: results.filter(r => r.status === 'fulfilled').length,
-        failed: results.filter(r => r.status === 'rejected').length,
-        total: subs.length
-      })
-    };
+    return new Response(JSON.stringify({
+      sent: results.filter(r => r.status === 'fulfilled').length,
+      failed: results.filter(r => r.status === 'rejected').length,
+      total: subs.length
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (err) {
     console.error('push.js error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
-}
+};

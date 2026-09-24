@@ -19,10 +19,13 @@ async function saveData(data) {
   await store.setJSON('data', data);
 }
 
-export async function handler(event) {
-  const method = event.httpMethod;
+export default async (req, context) => {
+  const method = req.method;
+  const url = new URL(req.url);
 
-  if (method === 'OPTIONS') return { statusCode: 204, headers: cors, body: '' };
+  if (method === 'OPTIONS') {
+    return new Response('', { status: 204, headers: cors });
+  }
 
   try {
     const data = await loadData();
@@ -31,20 +34,22 @@ export async function handler(event) {
 
     // ---------- GET all spins ----------
     if (method === 'GET') {
-      return {
-        statusCode: 200,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spins: data.spins })
-      };
+      return new Response(JSON.stringify({ spins: data.spins }), {
+        status: 200,
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
     }
 
     // ---------- POST new spin ----------
     if (method === 'POST') {
-      const body = JSON.parse(event.body || '{}');
+      const body = await req.json();
       const required = ['title', 'type', 'date', 'time', 'location', 'distance', 'pace', 'author', 'phone'];
       for (const f of required) {
         if (!body[f]) {
-          return { statusCode: 400, headers: cors, body: JSON.stringify({ error: `Missing field: ${f}` }) };
+          return new Response(JSON.stringify({ error: `Missing field: ${f}` }), {
+            status: 400,
+            headers: { ...cors, 'Content-Type': 'application/json' }
+          });
         }
       }
 
@@ -71,10 +76,9 @@ export async function handler(event) {
       data.spins.unshift(newSpin);
       await saveData(data);
 
-      // Fire-and-forget push notification
+      // Fire-and-forget push
       try {
-        const origin = event.headers.origin || `https://${event.headers.host}`;
-        await fetch(`${origin}/api/push`, {
+        await fetch(`${url.origin}/api/push`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -88,24 +92,29 @@ export async function handler(event) {
         console.warn('Push notify failed:', e.message);
       }
 
-      return {
-        statusCode: 201,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spin: newSpin })
-      };
+      return new Response(JSON.stringify({ spin: newSpin }), {
+        status: 201,
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
     }
 
     // ---------- PATCH RSVP ----------
     if (method === 'PATCH') {
-      const id = event.queryStringParameters && event.queryStringParameters.id;
-      const body = JSON.parse(event.body || '{}');
+      const id = url.searchParams.get('id');
+      const body = await req.json();
       const { action, user } = body;
       if (!id || !action || !user) {
-        return { statusCode: 400, headers: cors, body: JSON.stringify({ error: 'id, action, user required' }) };
+        return new Response(JSON.stringify({ error: 'id, action, user required' }), {
+          status: 400,
+          headers: { ...cors, 'Content-Type': 'application/json' }
+        });
       }
       const spin = data.spins.find(s => s.id === id);
       if (!spin) {
-        return { statusCode: 404, headers: cors, body: JSON.stringify({ error: 'Spin not found' }) };
+        return new Response(JSON.stringify({ error: 'Spin not found' }), {
+          status: 404,
+          headers: { ...cors, 'Content-Type': 'application/json' }
+        });
       }
 
       spin.committed = (spin.committed || []).filter(u => u !== user);
@@ -114,16 +123,21 @@ export async function handler(event) {
       if (action === 'interested') spin.interested.push(user);
 
       await saveData(data);
-      return {
-        statusCode: 200,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spin })
-      };
+      return new Response(JSON.stringify({ spin }), {
+        status: 200,
+        headers: { ...cors, 'Content-Type': 'application/json' }
+      });
     }
 
-    return { statusCode: 405, headers: cors, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { ...cors, 'Content-Type': 'application/json' }
+    });
   } catch (err) {
     console.error('spins.js error:', err);
-    return { statusCode: 500, headers: cors, body: JSON.stringify({ error: err.message }) };
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...cors, 'Content-Type': 'application/json' }
+    });
   }
-}
+};
