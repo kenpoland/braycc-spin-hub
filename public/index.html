@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrayCC - Spin Hub</title>
+    <meta name="theme-color" content="#581C87">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        clubPurple: '#581C87',
+                        clubPurpleDark: '#3B0764',
+                        clubPurpleLight: '#7E22CE',
+                        clubBlue: '#2563EB',
+                        clubBlueDark: '#1D4ED8'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+        .tab-btn.active {
+            background-color: #FFFFFF;
+            color: #581C87;
+            font-weight: 700;
+            border-bottom: 4px solid #2563EB;
+        }
+        .pace-badge-Red { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+        .pace-badge-Orange { background-color: #FFEDD5; color: #9A3412; border: 1px solid #FDBA74; }
+        .pace-badge-Yellow { background-color: #FEF9C3; color: #854D0E; border: 1px solid #FDE047; }
+        .pace-badge-Green { background-color: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+        .pace-badge-Blue { background-color: #DBEAFE; color: #1E40AF; border: 1px solid #93C5FD; }
+        .pace-btn-Red.selected { background-color: #DC2626; color: #FFFFFF; border-color: #B91C1C; }
+        .pace-btn-Orange.selected { background-color: #EA580C; color: #FFFFFF; border-color: #C2410C; }
+        .pace-btn-Yellow.selected { background-color: #CA8A04; color: #FFFFFF; border-color: #A16207; }
+        .pace-btn-Green.selected { background-color: #16A34A; color: #FFFFFF; border-color: #15803D; }
+        .pace-btn-Blue.selected { background-color: #2563EB; color: #FFFFFF; border-color: #1D4ED8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50">
+
+    <!-- TOP HEADER & MAIN TABS -->
+    <header class="bg-clubPurple text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 pt-3 pb-0">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-lg text-clubPurple shadow-inner">
+                        <i class="fa-solid font-bold fa-bicycle text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-extrabold tracking-tight">BrayCC</h1>
+                        <p class="text-xs text-purple-200 font-medium">Club Spin &amp; Challenge Hub</p>
+                    </div>
+                </div>
+                <button id="enable-notifications" class="hidden sm:flex items-center space-x-2 bg-purple-800 hover:bg-purple-700 px-3 py-2 rounded-lg text-xs font-bold border border-purple-600 transition">
+                    <i class="fa-solid fa-bell"></i>
+                    <span>Enable Alerts</span>
+                </button>
+            </div>
+
+            <nav class="flex space-x-1 border-t border-purple-800 pt-1" aria-label="Tabs">
+                <button id="tab-upcoming-btn" onclick="switchTab('upcoming')" class="tab-btn active flex-1 py-3 px-4 text-center font-semibold text-sm md:text-base rounded-t-lg transition-all duration-150 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-calendar-days text-clubBlue"></i>
+                    <span>Upcoming Spins</span>
+                    <span id="spin-count-badge" class="bg-purple-100 text-clubPurple text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
+                </button>
+                <button id="tab-propose-btn" onclick="switchTab('propose')" class="tab-btn flex-1 py-3 px-4 text-center font-semibold text-sm md:text-base rounded-t-lg text-purple-200 hover:text-white hover:bg-purple-800 transition-all duration-150 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-circle-plus text-yellow-300"></i>
+                    <span>Propose a Spin</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 md:p-6">
+
+        <!-- WEATHER POLICY & MUDGUARD BANNER -->
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm mb-6 text-slate-800 text-sm space-y-2">
+            <div class="flex items-start">
+                <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-lg mr-3 mt-0.5"></i>
+                <div>
+                    <span class="font-bold text-amber-900">All-Weather Policy Note:</span>
+                    If you commit to an <span class="font-semibold text-purple-900">All-Weather Spin</span>, you are expected to show up at the meeting point to decide on the route together. <span class="underline decoration-amber-500 decoration-2">Automatic Cancellation</span> applies if Met Éireann issues an active Orange or Red weather warning.
+                </div>
+            </div>
+            <div class="flex items-center pt-2 border-t border-amber-200/60 text-slate-700">
+                <i class="fa-solid fa-shield-halved text-clubPurple mr-2"></i>
+                <span class="font-semibold text-slate-900">Group Etiquette:</span>
+                <span class="ml-1 text-slate-800 font-medium">Please show respect to other riders by using mudguards on winter and wet spins.</span>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: UPCOMING SPINS VIEW                -->
+        <!-- ========================================== -->
+        <section id="view-upcoming" class="space-y-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                <div class="flex flex-col sm:flex-row gap-3 flex-grow">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Spin Type</label>
+                        <select id="filter-type" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                            <option value="ALL">All Spin Types</option>
+                            <option value="Road">Road</option>
+                            <option value="Off-Road (MTB / Gravel)">Off-Road (MTB / Gravel)</option>
+                            <option value="Away Day">Away Day</option>
+                            <option value="Evening Spin">Evening Spin</option>
+                            <option value="Weekday Spin">Weekday Spin</option>
+                            <option value="Audax">Audax</option>
+                            <option value="Touring">Touring</option>
+                            <option value="Virtual">Virtual</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pace Group</label>
+                        <select id="filter-pace" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-lg p-2.5 text-sm font-medium focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                            <option value="ALL">All Pace Groups</option>
+                            <option value="Red">Red (Fastest)</option>
+                            <option value="Orange">Orange (Brisk)</option>
+                            <option value="Yellow">Yellow (Steady)</option>
+                            <option value="Green">Green (Moderate)</option>
+                            <option value="Blue">Blue (Leisurely)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex items-end">
+                    <button onclick="resetFilters()" class="w-full md:w-auto px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-lg border border-slate-300 transition flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-rotate-left text-xs"></i>
+                        <span>Reset Filters</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading-spins" class="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-clubPurple mb-3"></i>
+                <p class="font-bold">Loading spins...</p>
+            </div>
+
+            <div id="spins-list-container" class="space-y-4"></div>
+
+            <div id="no-spins-notice" class="hidden bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
+                <i class="fa-solid fa-bicycle text-4xl text-slate-300 mb-3"></i>
+                <p class="font-bold text-lg text-slate-700">No spins match your current filter</p>
+                <p class="text-sm mt-1">Try resetting your filters or propose a spin yourself!</p>
+                <button onclick="switchTab('propose')" class="mt-4 px-5 py-2.5 bg-clubPurple text-white font-bold rounded-lg shadow hover:bg-clubPurpleDark transition">Propose This Spin Now</button>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: PROPOSE A SPIN FORM               -->
+        <!-- ========================================== -->
+        <section id="view-propose" class="hidden">
+            <div class="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden">
+                <div class="bg-gradient-to-r from-clubPurple to-clubBlue p-5 text-white">
+                    <h2 class="text-xl font-extrabold flex items-center">
+                        <i class="fa-solid fa-bullhorn mr-2"></i> Propose a New Club Spin or Challenge
+                    </h2>
+                    <p class="text-xs text-purple-100 mt-1">Suggest a ride, set the pace, and gather club members to join you.</p>
+                </div>
+
+                <div class="bg-slate-100 px-6 py-3 border-b border-slate-200">
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-600">
+                        <span id="step-label-1" class="text-clubPurple font-extrabold">1. Spin Details</span>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                        <span id="step-label-2" class="text-slate-400">2. Pace &amp; Quorum</span>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                        <span id="step-label-3" class="text-slate-400">3. Weather &amp; Contact</span>
+                        <i class="fa-solid fa-chevron-right text-slate-400"></i>
+                        <span id="step-label-4" class="text-slate-400">4. Review</span>
+                    </div>
+                </div>
+
+                <form id="propose-spin-form" onsubmit="event.preventDefault();" class="p-6">
+
+                    <!-- STEP 1 -->
+                    <div id="form-step-1" class="space-y-5">
+                        <h3 class="text-lg font-bold text-slate-900 border-b pb-2">Step 1: Choose Spin Category &amp; Schedule</h3>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Select Spin Type <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Road" checked class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-road text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Road</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Off-Road (MTB / Gravel)" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-mountain text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Off-Road (MTB/Gravel)</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Away Day" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-van-shuttle text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Away Day</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Evening Spin" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-moon text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Evening Spin</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Weekday Spin" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-calendar-day text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Weekday Spin</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Audax" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-compass text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Audax</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Touring" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-route text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Touring</span>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="spinType" value="Virtual" class="peer sr-only">
+                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-laptop text-slate-600 text-lg block mb-1"></i>
+                                        <span class="text-xs font-bold text-slate-800">Virtual</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Spin Title / Name <span class="text-red-500">*</span></label>
+                                <input type="text" id="prop-title" placeholder="e.g., Wicklow Hills &amp; Coffee Run" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance (km) <span class="text-red-500">*</span></label>
+                                <input type="number" id="prop-distance" placeholder="e.g., 65" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date <span class="text-red-500">*</span></label>
+                                <input type="date" id="prop-date" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Departure Time <span class="text-red-500">*</span></label>
+                                <input type="time" id="prop-time" value="09:00" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Meeting / Departure Point <span class="text-red-500">*</span></label>
+                                <input type="text" id="prop-location" placeholder="e.g., Main Square Kiosk, Bray" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Route Map Link (Strava/Komoot/Garmin)</label>
+                                <input type="url" id="prop-map-link" placeholder="https://www.strava.com/routes/..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-4">
+                            <button type="button" onclick="goToStep(2)" class="px-6 py-2.5 bg-clubPurple text-white font-bold rounded-lg hover:bg-clubPurpleDark transition">Next: Pace &amp; Requirements &rarr;</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2 -->
+                    <div id="form-step-2" class="hidden space-y-5">
+                        <h3 class="text-lg font-bold text-slate-900 border-b pb-2">Step 2: Select Pace Group &amp; Minimum Riders</h3>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Pace Group Suitability <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                                <button type="button" onclick="selectPace('Red')" id="pace-opt-Red" class="pace-btn-Red p-3 rounded-lg border text-left transition font-semibold">
+                                    <div class="text-xs uppercase font-extrabold text-red-600">Red Group</div>
+                                    <div class="text-sm font-bold mt-1">Fast / Race</div>
+                                    <div class="text-[10px] text-slate-500">28+ km/h avg</div>
+                                </button>
+                                <button type="button" onclick="selectPace('Orange')" id="pace-opt-Orange" class="pace-btn-Orange p-3 rounded-lg border text-left transition font-semibold">
+                                    <div class="text-xs uppercase font-extrabold text-orange-600">Orange</div>
+                                    <div class="text-sm font-bold mt-1">Brisk</div>
+                                    <div class="text-[10px] text-slate-500">25-28 km/h avg</div>
+                                </button>
+                                <button type="button" onclick="selectPace('Yellow')" id="pace-opt-Yellow" class="pace-btn-Yellow selected p-3 rounded-lg border text-left transition font-semibold">
+                                    <div class="text-xs uppercase font-extrabold text-yellow-600">Yellow</div>
+                                    <div class="text-sm font-bold mt-1">Steady</div>
+                                    <div class="text-[10px] text-slate-500">22-25 km/h avg</div>
+                                </button>
+                                <button type="button" onclick="selectPace('Green')" id="pace-opt-Green" class="pace-btn-Green p-3 rounded-lg border text-left transition font-semibold">
+                                    <div class="text-xs uppercase font-extrabold text-green-600">Green</div>
+                                    <div class="text-sm font-bold mt-1">Moderate</div>
+                                    <div class="text-[10px] text-slate-500">19-22 km/h avg</div>
+                                </button>
+                                <button type="button" onclick="selectPace('Blue')" id="pace-opt-Blue" class="pace-btn-Blue p-3 rounded-lg border text-left transition font-semibold">
+                                    <div class="text-xs uppercase font-extrabold text-blue-600">Blue</div>
+                                    <div class="text-sm font-bold mt-1">Leisure</div>
+                                    <div class="text-[10px] text-slate-500">&lt;19 km/h avg</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Minimum Riders Required for Spin to Run</label>
+                            <p class="text-xs text-slate-500 mb-2">How many committed riders are needed before this spin is confirmed?</p>
+                            <div class="flex items-center space-x-3">
+                                <button type="button" onclick="adjustMinRiders(-1)" class="w-10 h-10 rounded-lg border border-slate-300 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200">-</button>
+                                <span id="prop-min-riders-display" class="text-xl font-bold w-8 text-center">3</span>
+                                <button type="button" onclick="adjustMinRiders(1)" class="w-10 h-10 rounded-lg border border-slate-300 font-bold text-slate-700 bg-slate-100 hover:bg-slate-200">+</button>
+                                <span class="text-xs text-slate-500 font-semibold">(Default is 3 riders)</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between pt-4">
+                            <button type="button" onclick="goToStep(1)" class="px-5 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition">&larr; Back</button>
+                            <button type="button" onclick="goToStep(3)" class="px-6 py-2.5 bg-clubPurple text-white font-bold rounded-lg hover:bg-clubPurpleDark transition">Next: Weather Policy &amp; Contact &rarr;</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3 -->
+                    <div id="form-step-3" class="hidden space-y-5">
+                        <h3 class="text-lg font-bold text-slate-900 border-b pb-2">Step 3: Weather Policy &amp; Proposer Info</h3>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Weather Condition Policy <span class="text-red-500">*</span></label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="weatherPolicy" value="All-Weather" checked class="peer sr-only">
+                                    <div class="p-4 border-2 border-slate-200 rounded-xl peer-checked:border-clubPurple peer-checked:bg-purple-50 transition">
+                                        <div class="font-bold text-slate-900 flex items-center">
+                                            <i class="fa-solid fa-cloud-showers-heavy text-purple-700 mr-2"></i> All-Weather Spin
+                                        </div>
+                                        <p class="text-xs text-slate-600 mt-1">Riders turn up at meeting point; call made on spot. (Auto-cancelled if Met Éireann issues Orange/Red warning).</p>
+                                    </div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="weatherPolicy" value="Fair-Weather Only" class="peer sr-only">
+                                    <div class="p-4 border-2 border-slate-200 rounded-xl peer-checked:border-clubPurple peer-checked:bg-purple-50 transition">
+                                        <div class="font-bold text-slate-900 flex items-center">
+                                            <i class="fa-solid fa-sun text-amber-500 mr-2"></i> Fair-Weather Only
+                                        </div>
+                                        <p class="text-xs text-slate-600 mt-1">Spin cancelled in advance if heavy rain or severe cold/wind is forecasted.</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Name (Proposer) <span class="text-red-500">*</span></label>
+                                <input type="text" id="prop-author" placeholder="e.g., Ciara O'Connor" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp Phone Number <span class="text-red-500">*</span></label>
+                                <input type="tel" id="prop-phone" placeholder="e.g., +353 87 123 4567" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none" required>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <label class="inline-flex items-center space-x-2 cursor-pointer bg-slate-100 p-3 rounded-lg border border-slate-200 w-full">
+                                <input type="checkbox" id="prop-mudguards" checked class="w-4 h-4 text-clubPurple rounded border-slate-300 focus:ring-clubPurple">
+                                <span class="text-xs font-bold text-slate-800">
+                                    <i class="fa-solid fa-shield-halved text-clubPurple mr-1"></i> Require full mudguards if road conditions are wet / winter spin
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-between pt-4">
+                            <button type="button" onclick="goToStep(2)" class="px-5 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition">&larr; Back</button>
+                            <button type="button" onclick="goToStep(4)" class="px-6 py-2.5 bg-clubPurple text-white font-bold rounded-lg hover:bg-clubPurpleDark transition">Next: Review &amp; Confirm &rarr;</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4 -->
+                    <div id="form-step-4" class="hidden space-y-5">
+                        <h3 class="text-lg font-bold text-slate-900 border-b pb-2">Step 4: Review Your Spin Proposal</h3>
+                        <div id="review-card-container" class="bg-slate-50 p-4 rounded-xl border border-slate-300 space-y-3"></div>
+                        <div class="flex justify-between pt-4">
+                            <button type="button" onclick="goToStep(3)" class="px-5 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition">&larr; Back</button>
+                            <button type="button" onclick="submitSpinProposal()" class="px-8 py-3 bg-clubBlue hover:bg-clubBlueDark text-white font-extrabold rounded-lg shadow-lg text-base transition flex items-center space-x-2">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>Publish Spin Proposal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-auto">
+        <div class="max-w-5xl mx-auto px-4 text-center text-xs space-y-2">
+            <p class="font-semibold text-slate-300">&copy; 2026 BrayCC. All Rights Reserved.</p>
+            <p>Ensure helmets, mudguards on wet spins, and rear lights are used on all group rides. Always respect Irish Road Traffic Laws.</p>
+        </div>
+    </footer>
+
+    <script src="/app.js" defer></script>
+</body>
+</html>
