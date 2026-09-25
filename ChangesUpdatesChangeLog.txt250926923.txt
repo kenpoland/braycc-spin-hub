@@ -199,3 +199,59 @@ public/app.js
 
 public/sw.js
   - Cache bumped braycc-v5 -> braycc-v6.
+
+  ------------------------------------------------------------
+Version: Phone collection on RSVP + WhatsApp group builder
+Date: 2026-09-25
+------------------------------------------------------------
+
+FEATURE
+-------
+- Phone number is now collected whenever a user marks
+  Interested OR Committed on a spin.
+- Committed still also requires an ICE emergency contact.
+- The spin proposer sees a "WhatsApp Group" button on their
+  own spins, which opens a modal with:
+    * All RSVP'd names + phone numbers
+    * Status (Committed / Interested)
+    * A one-click "copy all numbers" button
+    * A pre-filled suggested group message
+    * Step-by-step instructions for creating the group
+
+FILES MODIFIED
+--------------
+netlify/functions/spins.js
+  - PATCH now requires `phone` for both `interested` and
+    `committed` actions.
+  - committed entries gain `phone` field.
+  - interested entries now stored as objects { name, phone }
+    instead of plain strings.
+  - sanitizeSpin strips phone numbers from public responses
+    for both committed and interested riders.
+  - New endpoint: GET /api/spins?waGroup=1&id=...&user=...
+    Returns phone numbers + suggested message for the group,
+    only to the spin author.
+
+public/index.html
+  - ICE modal rebuilt as a unified RSVP modal:
+      * Phone field always shown (top)
+      * ICE fields only shown when Committing
+      * Title/subtitle/submit button text adapt to the action
+  - New WhatsApp Group modal (proposer only).
+
+public/app.js
+  - toggleRSVP now opens the modal for both Interested and
+    Committed (previously only for Committed). "Un-committing"
+    still happens silently without the modal.
+  - openICEModal adapts to rsvpType — hides ICE for interested,
+    shows for committed.
+  - submitRSVPWithDetails replaces submitICEAndCommit.
+  - Phone is cached in localStorage under braycc_user_phone
+    for convenience.
+  - New: openWAGroupModal / closeWAGroupModal /
+    copyAllPhoneNumbers / copySuggestedMessage.
+  - renderSpinCard: added "WhatsApp Group" button to
+    proposer controls.
+
+public/sw.js
+  - Cache bumped braycc-v7 → braycc-v8.

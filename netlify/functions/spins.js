@@ -44,7 +44,10 @@ function sanitizeSpin(spin) {
       name: c.name,
       committedAt: c.committedAt,
       hasICE: !!(c.ice && c.ice.name && c.ice.phone)
-    }))
+    })),
+    interested: (spin.interested || []).map(i =>
+      typeof i === 'string' ? { name: i } : { name: i.name }
+    )
   };
 }
 
@@ -165,7 +168,8 @@ export default async (req, context) => {
       }
 
       // --- Normal RSVP path ---
-      const { action, user, ice } = body;
+    
+       const { action, user, ice, phone } = body;
 
       if (!id || !action || !user) {
         return new Response(JSON.stringify({ error: 'id, action, user required' }), {
@@ -180,11 +184,20 @@ export default async (req, context) => {
       }
 
       spin.committed = normalizeCommitted(spin.committed);
-      spin.interested = spin.interested || [];
+      spin.interested = (spin.interested || []).map(i =>
+        typeof i === 'string' ? { name: i, phone: '' } : i
+      );
       spin.committed = spin.committed.filter(c => c.name !== user);
-      spin.interested = spin.interested.filter(u => u !== user);
+      spin.interested = spin.interested.filter(u => u.name !== user);
 
-      if (action === 'committed') {
+          if (action === 'committed') {
+        if (!phone) {
+          return new Response(JSON.stringify({
+            error: 'Your phone number is required to commit.'
+          }), {
+            status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
+          });
+        }
         if (!ice || !ice.name || !ice.phone) {
           return new Response(JSON.stringify({
             error: 'ICE contact (name and phone) is required to commit.'
@@ -194,6 +207,7 @@ export default async (req, context) => {
         }
         spin.committed.push({
           name: user,
+          phone: String(phone).slice(0, 40),
           committedAt: new Date().toISOString(),
           ice: {
             name: String(ice.name).slice(0, 80),
@@ -203,7 +217,16 @@ export default async (req, context) => {
           }
         });
       }
-      if (action === 'interested') spin.interested.push(user);
+      if (action === 'interested') {
+        if (!phone) {
+          return new Response(JSON.stringify({
+            error: 'Your phone number is required to mark interest.'
+          }), {
+            status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
+          });
+        }
+        spin.interested.push({ name: user, phone: String(phone).slice(0, 40) });
+      }
 
       await saveData(data);
       return new Response(JSON.stringify({ spin: sanitizeSpin(spin) }), {
@@ -261,7 +284,51 @@ export default async (req, context) => {
         status: 200, headers: { ...cors, 'Content-Type': 'application/json' }
       });
     }
+    // ---------- GET WhatsApp group list (proposer only) ----------
+    if (method === 'GET' && url.searchParams.get('waGroup') === '1') {
+      const id = url.searchParams.get('id');
+      const requester = url.searchParams.get('user');
+      if (!id || !requester) {
+        return new Response(JSON.stringify({ error: 'id and user required' }), {
+          status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+      const spin = data.spins.find(s => s.id === id);
+      if (!spin) {
+        return new Response(JSON.stringify({ error: 'Spin not found' }), {
+          status: 404, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+      if (String(spin.author).toLowerCase() !== String(requester).toLowerCase()) {
+        return new Response(JSON.stringify({ error: 'Only the proposer can view this list' }), {
+          status: 403, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
 
+      const committed = normalizeCommitted(spin.committed);
+      const interested = (spin.interested || []).map(i =>
+        typeof i === 'string' ? { name: i, phone: '' } : i
+      );
+
+      const contacts = [
+        ...committed.map(c => ({ name: c.name, phone: c.phone || '', status: 'Committed' })),
+        ...interested.map(i => ({ name: i.name, phone: i.phone || '', status: 'Interested' }))
+      ].filter(c => c.phone);
+
+      // Suggested message for the group
+      const dateObj = new Date(spin.date + 'T' + (spin.time || '09:00'));
+      const dateStr = dateObj.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
+      const suggestedMessage =
+`🚴 ${spin.title}
+📅 ${dateStr} at ${spin.time}
+📍 ${spin.location}
+🏁 ${spin.distance} km · ${spin.pace} pace
+${spin.mapLink ? '🗺️ ' + spin.mapLink : ''}`;
+
+      return new Response(JSON.stringify({ contacts, suggestedMessage }), {
+        status: 200, headers: { ...cors, 'Content-Type': 'application/json' }
+      });
+    }
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
       status: 405, headers: { ...cors, 'Content-Type': 'application/json' }
     });

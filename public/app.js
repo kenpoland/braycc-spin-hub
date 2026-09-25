@@ -225,8 +225,12 @@ function renderSpinCard(spin) {
     ? `<button onclick="viewICEContacts('${spin.id}')"
                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
          <i class="fa-solid fa-heart-pulse"></i><span>ICE Contacts</span></button>` : '';
+    const totalRSVPs = committedArr.length + totalInterested;
   const proposerBtns = isProposer
-    ? `<button onclick="openEditSpinModal('${spin.id}')"
+    ? `<button onclick="openWAGroupModal('${spin.id}')"
+               class="px-3 py-1.5 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
+         <i class="fa-brands fa-whatsapp"></i><span>WhatsApp Group</span></button>
+       <button onclick="openEditSpinModal('${spin.id}')"
                class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
          <i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
        <button onclick="openConfirmCancel('${spin.id}')"
@@ -320,58 +324,117 @@ async function toggleRSVP(spinId, rsvpType) {
     currentUserName = name.trim();
     localStorage.setItem('braycc_user', currentUserName);
   }
-  if (rsvpType === 'committed' && userRSVPs[spinId] !== 'committed') {
-    openICEModal(spinId);
+
+  // If already in this state → toggle off (no modal needed)
+  if (userRSVPs[spinId] === rsvpType) {
+    const newAction = 'none';
+    try {
+      const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: newAction, user: currentUserName })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'HTTP ' + res.status);
+      }
+      const { spin } = await res.json();
+      const idx = spinsData.findIndex((s) => s.id === spinId);
+      if (idx !== -1) spinsData[idx] = spin;
+      userRSVPs[spinId] = 'none';
+      renderSpins();
+    } catch (err) {
+      alert('Could not update RSVP: ' + err.message);
+    }
     return;
   }
-  const newAction = userRSVPs[spinId] === rsvpType ? 'none' : rsvpType;
-  try {
-    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: newAction, user: currentUserName })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'HTTP ' + res.status);
-    }
-    const { spin } = await res.json();
-    const idx = spinsData.findIndex((s) => s.id === spinId);
-    if (idx !== -1) spinsData[idx] = spin;
-    userRSVPs[spinId] = newAction;
-    renderSpins();
-  } catch (err) {
-    alert('Could not save RSVP: ' + err.message);
-  }
+
+  // Otherwise open the modal for phone (+ ICE if committing)
+  openICEModal(spinId, rsvpType);
 }
 
 /* ---------- ICE modals ---------- */
-function openICEModal(spinId) {
+let pendingRSVP = null;   // { spinId, rsvpType }
+
+function openICEModal(spinId, rsvpType) {
   const spin = spinsData.find(s => s.id === spinId);
   if (!spin) return;
-  pendingICECommit = { spinId, rsvpType: 'committed' };
-  document.getElementById('ice-form').reset();
-  document.getElementById('ice-modal').classList.remove('hidden');
+  pendingRSVP = { spinId, rsvpType };
+
+  const modal = document.getElementById('ice-modal');
+  const form = document.getElementById('ice-form');
+  form.reset();
+
+  // Adjust modal contents for the type
+  const title = document.getElementById('rsvp-modal-title');
+  const subtitle = document.getElementById('rsvp-modal-subtitle');
+  const iceSection = document.getElementById('rsvp-ice-section');
+  const submitBtn = document.getElementById('rsvp-submit-btn');
+
+  if (rsvpType === 'committed') {
+    title.textContent = 'Confirm Your Commitment';
+    subtitle.textContent = 'Your phone and emergency contact are required.';
+    iceSection.classList.remove('hidden');
+    document.getElementById('ice-name').required = true;
+    document.getElementById('ice-phone').required = true;
+    submitBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i><span>Confirm &amp; Commit</span>';
+  } else {
+    title.textContent = 'Mark as Interested';
+    subtitle.textContent = 'We just need your WhatsApp number.';
+    iceSection.classList.add('hidden');
+    document.getElementById('ice-name').required = false;
+    document.getElementById('ice-phone').required = false;
+    submitBtn.innerHTML = '<i class="fa-solid fa-star"></i><span>Save Interest</span>';
+  }
+
+  // Prefill phone if we have one saved
+  const savedPhone = localStorage.getItem('braycc_user_phone') || '';
+  document.getElementById('rsvp-user-phone').value = savedPhone;
+
+  modal.classList.remove('hidden');
 }
+
 function closeICEModal() {
-  pendingICECommit = null;
+  pendingRSVP = null;
   document.getElementById('ice-modal').classList.add('hidden');
 }
-async function submitICEAndCommit() {
-  if (!pendingICECommit) return;
-  const ice = {
-    name: document.getElementById('ice-name').value.trim(),
-    phone: document.getElementById('ice-phone').value.trim(),
-    relation: document.getElementById('ice-relation').value,
-    notes: document.getElementById('ice-notes').value.trim()
+
+async function submitRSVPWithDetails() {
+  if (!pendingRSVP) return;
+  const { spinId, rsvpType } = pendingRSVP;
+
+  const phone = document.getElementById('rsvp-user-phone').value.trim();
+  if (!phone) {
+    alert('Please enter your phone number.');
+    return;
+  }
+  localStorage.setItem('braycc_user_phone', phone);
+
+  const payload = {
+    action: rsvpType,
+    user: currentUserName,
+    phone
   };
-  if (!ice.name || !ice.phone) { alert('Please enter both the ICE contact name and phone.'); return; }
-  const { spinId } = pendingICECommit;
+
+  if (rsvpType === 'committed') {
+    const ice = {
+      name: document.getElementById('ice-name').value.trim(),
+      phone: document.getElementById('ice-phone').value.trim(),
+      relation: document.getElementById('ice-relation').value,
+      notes: document.getElementById('ice-notes').value.trim()
+    };
+    if (!ice.name || !ice.phone) {
+      alert('Please enter both the ICE contact name and phone.');
+      return;
+    }
+    payload.ice = ice;
+  }
+
   try {
     const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'committed', user: currentUserName, ice })
+      body: JSON.stringify(payload)
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -380,11 +443,11 @@ async function submitICEAndCommit() {
     const { spin } = await res.json();
     const idx = spinsData.findIndex((s) => s.id === spinId);
     if (idx !== -1) spinsData[idx] = spin;
-    userRSVPs[spinId] = 'committed';
+    userRSVPs[spinId] = rsvpType;
     closeICEModal();
     renderSpins();
   } catch (err) {
-    alert('Could not commit: ' + err.message);
+    alert('Could not save: ' + err.message);
   }
 }
 async function viewICEContacts(spinId) {
@@ -758,4 +821,99 @@ document.addEventListener('keydown', (e) => {
     const modal = document.getElementById('wa-picker-modal');
     if (modal && !modal.classList.contains('hidden')) closeWhatsAppPicker();
   }
+
+  /* ---------- Proposer: WhatsApp group builder ---------- */
+
+async function openWAGroupModal(spinId) {
+  const body = document.getElementById('wa-group-body');
+  body.innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>`;
+  document.getElementById('wa-group-modal').classList.remove('hidden');
+
+  try {
+    const res = await fetch(
+      `/api/spins?waGroup=1&id=${encodeURIComponent(spinId)}&user=${encodeURIComponent(currentUserName)}`
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const { contacts, suggestedMessage } = await res.json();
+
+    if (!contacts || contacts.length === 0) {
+      body.innerHTML = `
+        <p class="text-sm text-slate-600">No phone numbers yet — nobody who's RSVP'd has shared a number.</p>
+        <p class="text-xs text-slate-500 mt-2">As riders commit or mark interest, their numbers will appear here.</p>`;
+      return;
+    }
+
+    const numbersOnly = contacts.map(c => c.phone).join(', ');
+
+    body.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-500">
+          <span>Riders (${contacts.length})</span>
+          <button onclick="copyAllPhoneNumbers()" class="text-[#25D366] hover:text-[#1DA851] flex items-center gap-1">
+            <i class="fa-solid fa-copy"></i> Copy all numbers
+          </button>
+        </div>
+        <div id="wa-contacts-list" class="space-y-1.5 max-h-64 overflow-y-auto">
+          ${contacts.map(c => `
+            <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2">
+              <div class="min-w-0">
+                <div class="text-sm font-bold text-slate-900 truncate">${escapeHtml(c.name)}</div>
+                <div class="text-[11px] font-mono text-slate-600">${escapeHtml(c.phone)}</div>
+              </div>
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded ${c.status === 'Committed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${c.status}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="border-t pt-3">
+        <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-1.5">Suggested group message</div>
+        <textarea id="wa-suggested-msg" readonly rows="6" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-mono">${escapeHtml(suggestedMessage)}</textarea>
+        <button onclick="copySuggestedMessage()" class="mt-2 w-full px-3 py-2 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1">
+          <i class="fa-solid fa-copy"></i> Copy message for group description
+        </button>
+      </div>
+
+      <details class="text-xs">
+        <summary class="cursor-pointer font-bold text-slate-700 hover:text-clubPurple">How to create the WhatsApp group</summary>
+        <ol class="list-decimal pl-5 mt-2 space-y-1 text-slate-600">
+          <li>Open WhatsApp → New Group</li>
+          <li>Add each number above as a participant</li>
+          <li>Name the group: <strong>${escapeHtml(contacts.length ? 'BrayCC: ' : '')}${escapeHtml(suggestedMessage.split('\\n')[0].replace('🚴 ', ''))}</strong></li>
+          <li>Paste the suggested message as the group description</li>
+          <li>Send — everyone's notified</li>
+        </ol>
+      </details>
+
+      <input type="hidden" id="wa-hidden-numbers" value="${escapeHtml(numbersOnly)}">
+    `;
+  } catch (err) {
+    body.innerHTML = `<p class="text-sm text-red-600">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function closeWAGroupModal() {
+  document.getElementById('wa-group-modal').classList.add('hidden');
+}
+
+function copyAllPhoneNumbers() {
+  const el = document.getElementById('wa-hidden-numbers');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(
+    () => alert('Phone numbers copied to clipboard.'),
+    () => alert('Copy failed — please copy the numbers manually.')
+  );
+}
+
+function copySuggestedMessage() {
+  const el = document.getElementById('wa-suggested-msg');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(
+    () => alert('Message copied to clipboard.'),
+    () => alert('Copy failed — please copy the message manually.')
+  );
+}
 });

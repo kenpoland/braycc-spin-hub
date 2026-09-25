@@ -374,50 +374,84 @@
         </section>
 
         <!-- ICE INPUT MODAL -->
+                <!-- ========================================== -->
+        <!-- RSVP MODAL (Phone + optional ICE)          -->
+        <!-- ========================================== -->
         <div id="ice-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
             <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <div class="bg-gradient-to-r from-clubPurple to-clubBlue p-4 text-white">
                     <h3 class="font-extrabold flex items-center">
-                        <i class="fa-solid fa-heart-pulse mr-2"></i> Emergency Contact (ICE)
+                        <i class="fa-solid fa-user-check mr-2"></i> <span id="rsvp-modal-title">Confirm Your RSVP</span>
                     </h3>
-                    <p class="text-xs text-purple-100 mt-1">Required to commit to this spin. Only visible to the spin organiser.</p>
+                    <p class="text-xs text-purple-100 mt-1" id="rsvp-modal-subtitle">Your details help the organiser reach you before the spin.</p>
                 </div>
-                <form id="ice-form" onsubmit="event.preventDefault(); submitICEAndCommit();" class="p-5 space-y-4">
+                <form id="ice-form" onsubmit="event.preventDefault(); submitRSVPWithDetails();" class="p-5 space-y-4">
+
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Contact Name <span class="text-red-500">*</span></label>
-                        <input type="text" id="ice-name" required placeholder="e.g., Mary Walsh" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your WhatsApp Phone Number <span class="text-red-500">*</span></label>
+                        <input type="tel" id="rsvp-user-phone" required placeholder="e.g., +353 87 123 4567" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                        <p class="text-[11px] text-slate-500 mt-1">So the organiser can add you to the spin's WhatsApp group.</p>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Contact Phone <span class="text-red-500">*</span></label>
-                        <input type="tel" id="ice-phone" required placeholder="e.g., +353 87 123 4567" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Relationship</label>
-                        <select id="ice-relation" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
-                            <option value="">— Select —</option>
-                            <option value="Spouse">Spouse</option>
-                            <option value="Partner">Partner</option>
-                            <option value="Parent">Parent</option>
-                            <option value="Sibling">Sibling</option>
-                            <option value="Child">Child</option>
-                            <option value="Friend">Friend</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Medical Notes (optional)</label>
-                        <textarea id="ice-notes" rows="2" placeholder="e.g., Allergic to penicillin" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none"></textarea>
-                    </div>
-                    <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded text-xs text-slate-700">
-                        <i class="fa-solid fa-circle-info text-amber-600 mr-1"></i>
-                        ICE details are automatically deleted 24 hours after the spin takes place.
+
+                    <!-- ICE section — only shown when committing -->
+                    <div id="rsvp-ice-section" class="space-y-3 pt-2 border-t border-slate-200">
+                        <div class="flex items-center space-x-2 pt-1">
+                            <i class="fa-solid fa-heart-pulse text-red-600"></i>
+                            <span class="text-xs font-black text-red-700 uppercase tracking-wide">Emergency Contact (ICE) — Required to Commit</span>
+                        </div>
+                        <div class="bg-red-50 border-l-4 border-red-400 p-2.5 rounded text-[11px] text-red-900">
+                            Only visible to the spin organiser for emergency use. Auto-deleted 24 hours after the spin.
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ICE Contact Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="ice-name" placeholder="e.g., Mary Walsh" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ICE Contact Phone <span class="text-red-500">*</span></label>
+                            <input type="tel" id="ice-phone" placeholder="e.g., +353 87 123 4567" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Relationship</label>
+                            <select id="ice-relation" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none">
+                                <option value="">— Select —</option>
+                                <option value="Spouse">Spouse</option>
+                                <option value="Partner">Partner</option>
+                                <option value="Parent">Parent</option>
+                                <option value="Sibling">Sibling</option>
+                                <option value="Child">Child</option>
+                                <option value="Friend">Friend</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Medical Notes (optional)</label>
+                            <textarea id="ice-notes" rows="2" placeholder="e.g., Allergic to penicillin" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-clubPurple focus:outline-none"></textarea>
+                        </div>
                     </div>
                 </form>
                 <div class="bg-slate-50 p-4 flex justify-end gap-2 border-t">
                     <button type="button" onclick="closeICEModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Cancel</button>
-                    <button type="submit" form="ice-form" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm flex items-center space-x-1">
-                        <i class="fa-solid fa-circle-check"></i><span>Save &amp; Commit</span>
+                    <button type="submit" form="ice-form" id="rsvp-submit-btn" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm flex items-center space-x-1">
+                        <i class="fa-solid fa-circle-check"></i><span>Confirm</span>
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- WHATSAPP GROUP MODAL (proposer only)        -->
+        <!-- ========================================== -->
+        <div id="wa-group-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div class="bg-gradient-to-r from-[#25D366] to-[#1DA851] p-4 text-white">
+                    <h3 class="font-extrabold flex items-center">
+                        <i class="fa-brands fa-whatsapp mr-2 text-xl"></i> Build WhatsApp Group
+                    </h3>
+                    <p class="text-xs text-white/90 mt-1">Copy these numbers into a new WhatsApp group.</p>
+                </div>
+                <div id="wa-group-body" class="p-5 space-y-3"></div>
+                <div class="bg-slate-50 p-4 flex justify-end border-t">
+                    <button type="button" onclick="closeWAGroupModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Close</button>
                 </div>
             </div>
         </div>
