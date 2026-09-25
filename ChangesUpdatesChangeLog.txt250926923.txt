@@ -166,3 +166,36 @@ Authorisation is by name matching (as with the rest of the app),
 plus the ADMIN_TOKEN_SECRET header for admin override. This is
 appropriate for a small club. For stricter control, add real
 authentication in a future update.
+
+------------------------------------------------------------
+Version: Floating WhatsApp contact button
+Date: 2026-09-25
+------------------------------------------------------------
+
+FEATURE: Floating "Ask a question on WhatsApp" button.
+
+FILES CREATED
+-------------
+public/whatsapp-numbers.json
+  - Config file for the WhatsApp picker.
+  - Contains: heading, intro, defaultMessage, contacts[].
+  - Each contact has: label, name, phone (+international), description.
+  - Edit this file to add/remove/change numbers — no code changes needed.
+
+FILES MODIFIED
+--------------
+public/index.html
+  - Added floating green WhatsApp button fixed bottom-right.
+  - Added picker modal (bottom-sheet on mobile, dialog on desktop).
+  - Both are pure markup, driven by app.js.
+
+public/app.js
+  - Added whatsAppConfig global.
+  - Added loadWhatsAppNumbers() — fetches /whatsapp-numbers.json on startup.
+    If the config is missing or has no contacts, the button stays hidden.
+  - Added openWhatsAppPicker() — renders contact list with wa.me links,
+    each pre-filled with the defaultMessage from config.
+  - Added closeWhatsAppPicker() + backdrop click + Escape key handlers.
+
+public/sw.js
+  - Cache bumped braycc-v5 -> braycc-v6.

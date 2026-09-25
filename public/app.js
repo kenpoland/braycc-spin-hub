@@ -11,6 +11,7 @@ let currentFormStep = 1;
 let selectedPaceInForm = 'Yellow';
 let minRidersInForm = 3;
 let pendingICECommit = null;
+let whatsAppConfig = null;
 
 window.addEventListener('DOMContentLoaded', () => {
   const tomorrow = new Date();
@@ -19,6 +20,7 @@ window.addEventListener('DOMContentLoaded', () => {
   injectProposerModals();
   wireNotificationButton();
   registerServiceWorker();
+  loadWhatsAppNumbers();   // ← NEW
   loadSpins();
 });
 
@@ -680,3 +682,80 @@ function urlBase64ToUint8Array(base64String) {
   for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
   return output;
 }
+/* ---------- Floating WhatsApp contact ---------- */
+
+async function loadWhatsAppNumbers() {
+  try {
+    const res = await fetch('/whatsapp-numbers.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    whatsAppConfig = await res.json();
+
+    // Reveal the button once we know a config exists
+    const btn = document.getElementById('wa-float-btn');
+    if (btn && whatsAppConfig && Array.isArray(whatsAppConfig.contacts) && whatsAppConfig.contacts.length > 0) {
+      btn.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.warn('WhatsApp config not loaded:', err.message);
+    // Button stays hidden — silent failure, no UI noise
+  }
+}
+
+function openWhatsAppPicker() {
+  if (!whatsAppConfig || !Array.isArray(whatsAppConfig.contacts)) {
+    alert('No contact numbers configured yet.');
+    return;
+  }
+
+  // Set heading + intro from config
+  document.getElementById('wa-picker-heading').textContent =
+    whatsAppConfig.heading || 'Contact the club on WhatsApp';
+  document.getElementById('wa-picker-intro').textContent =
+    whatsAppConfig.intro || '';
+
+  const defaultMsg = whatsAppConfig.defaultMessage || 'Hi, I have a question about BrayCC.';
+
+  // Render the list of contact rows
+  const list = document.getElementById('wa-picker-list');
+  list.innerHTML = whatsAppConfig.contacts.map(c => {
+    const digits = String(c.phone || '').replace(/[^0-9]/g, '');
+    const href = `https://wa.me/${digits}?text=${encodeURIComponent(defaultMsg)}`;
+    return `
+      <a href="${href}" target="_blank" rel="noopener"
+         class="flex items-center justify-between gap-3 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl p-3 transition group">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="bg-[#25D366] group-hover:bg-[#1DA851] w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fa-brands fa-whatsapp text-white text-xl"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-black uppercase tracking-wide text-slate-500">${escapeHtml(c.label || 'Contact')}</div>
+            <div class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(c.name || '')}</div>
+            ${c.description ? `<div class="text-[11px] text-slate-500 truncate">${escapeHtml(c.description)}</div>` : ''}
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-emerald-600"></i>
+      </a>
+    `;
+  }).join('');
+
+  document.getElementById('wa-picker-modal').classList.remove('hidden');
+}
+
+function closeWhatsAppPicker() {
+  document.getElementById('wa-picker-modal').classList.add('hidden');
+}
+
+// Close picker when tapping the backdrop
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('wa-picker-modal');
+  if (!modal || modal.classList.contains('hidden')) return;
+  if (e.target === modal) closeWhatsAppPicker();
+});
+
+// Escape key closes picker
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('wa-picker-modal');
+    if (modal && !modal.classList.contains('hidden')) closeWhatsAppPicker();
+  }
+});

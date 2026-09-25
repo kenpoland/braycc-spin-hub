@@ -1,0 +1,31 @@
+{
+  "heading": "Ask a question on WhatsApp",
+  "intro": "Pick who you want to message — they'll usually reply within a few hours.",
+  "defaultMessage": "Hi, I have a question about proposing a spin or challenge.",
+  "contacts": [
+    {
+      "label": "Ken Poland",
+      "name": "Ken Poland",
+      "phone": "+353879647579",
+      "description": "General enquiries,"
+    },
+    {
+      "label": "",
+      "name": "",
+      "phone": "+353",
+      "description": ""
+    },
+    {
+      "label": "",
+      "name": "",
+      "phone": "+353",
+      "description": ""
+    },
+    {
+      "label": "Spin Hub Admin",
+      "name": "Ken Poland",
+      "phone": "+353879647579",
+      "description": "Issues with this website or the app"
+    }
+  ]
+}

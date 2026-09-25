@@ -445,7 +445,37 @@
             <p>Ensure helmets, mudguards on wet spins, and rear lights are used on all group rides. Always respect Irish Road Traffic Laws.</p>
         </div>
     </footer>
+    <!-- ========================================== -->
+    <!-- FLOATING WHATSAPP BUTTON + PICKER          -->
+    <!-- ========================================== -->
+    <button id="wa-float-btn" onclick="openWhatsAppPicker()" aria-label="Ask a question on WhatsApp"
+            class="hidden fixed bottom-5 right-5 z-40 bg-[#25D366] hover:bg-[#1DA851] text-white font-extrabold rounded-full shadow-2xl px-5 py-3.5 flex items-center space-x-2 transition-all hover:scale-105 active:scale-95">
+        <i class="fa-brands fa-whatsapp text-2xl"></i>
+        <span class="text-sm hidden sm:inline">Ask a question on WhatsApp</span>
+    </button>
 
+    <div id="wa-picker-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto">
+            <div class="bg-[#25D366] p-4 text-white rounded-t-2xl sticky top-0 z-10">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-brands fa-whatsapp text-2xl"></i>
+                        <h3 class="font-extrabold" id="wa-picker-heading">Contact the club on WhatsApp</h3>
+                    </div>
+                    <button onclick="closeWhatsAppPicker()" class="text-white/80 hover:text-white text-lg" aria-label="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-white/90 mt-1" id="wa-picker-intro"></p>
+            </div>
+            <div id="wa-picker-list" class="p-3 space-y-2">
+                <!-- Populated by JS -->
+            </div>
+            <div class="p-3 border-t bg-slate-50 text-center text-[11px] text-slate-500">
+                Messages open in your WhatsApp app. Replace the numbers in <code>public/whatsapp-numbers.json</code> at any time.
+            </div>
+        </div>
+    </div>
     <script src="/app.js" defer></script>
 </body>
 </html>
