@@ -10,7 +10,7 @@ let currentUserName = localStorage.getItem('braycc_user') || '';
 let currentFormStep = 1;
 let selectedPaceInForm = 'Yellow';
 let minRidersInForm = 3;
-let pendingICECommit = null;
+let pendingRSVP = null;
 let whatsAppConfig = null;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -20,15 +20,14 @@ window.addEventListener('DOMContentLoaded', () => {
   injectProposerModals();
   wireNotificationButton();
   registerServiceWorker();
-  loadWhatsAppNumbers();   // ← NEW
+  loadWhatsAppNumbers();
   loadSpins();
 });
 
-/* ---------- Inject proposer edit + cancel modals ---------- */
+/* ---------- Proposer edit + cancel modals injected into DOM ---------- */
 function injectProposerModals() {
   const container = document.createElement('div');
   container.innerHTML = `
-    <!-- PROPOSER EDIT SPIN MODAL -->
     <div id="edit-spin-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 overflow-y-auto">
       <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
         <div class="bg-gradient-to-r from-clubPurple to-clubBlue p-4 text-white flex items-center justify-between rounded-t-xl">
@@ -107,7 +106,6 @@ function injectProposerModals() {
       </div>
     </div>
 
-    <!-- CONFIRM CANCEL MODAL -->
     <div id="confirm-cancel-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
       <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
         <div class="bg-gradient-to-r from-red-600 to-red-700 p-4 text-white rounded-t-xl">
@@ -160,8 +158,9 @@ async function loadSpins() {
     userRSVPs = {};
     spinsData.forEach((s) => {
       const committedNames = (s.committed || []).map(c => typeof c === 'string' ? c : c.name);
+      const interestedNames = (s.interested || []).map(i => typeof i === 'string' ? i : i.name);
       if (currentUserName && committedNames.includes(currentUserName)) userRSVPs[s.id] = 'committed';
-      else if (currentUserName && (s.interested || []).includes(currentUserName)) userRSVPs[s.id] = 'interested';
+      else if (currentUserName && interestedNames.includes(currentUserName)) userRSVPs[s.id] = 'interested';
     });
     if (loading) loading.classList.add('hidden');
     renderSpins();
@@ -196,8 +195,9 @@ function renderSpinCard(spin) {
   const isCommitted = userRSVPs[spin.id] === 'committed';
   const isInterested = userRSVPs[spin.id] === 'interested';
   const committedArr = (spin.committed || []).map(c => typeof c === 'string' ? { name: c } : c);
+  const interestedArr = (spin.interested || []).map(i => typeof i === 'string' ? { name: i } : i);
   const totalCommitted = committedArr.length;
-  const totalInterested = (spin.interested || []).length;
+  const totalInterested = interestedArr.length;
   const quorumMet = totalCommitted >= spin.minRiders;
   const dateObj = new Date(spin.date + 'T' + spin.time);
   const formattedDate = dateObj.toLocaleDateString('en-IE', {
@@ -225,7 +225,6 @@ function renderSpinCard(spin) {
     ? `<button onclick="viewICEContacts('${spin.id}')"
                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
          <i class="fa-solid fa-heart-pulse"></i><span>ICE Contacts</span></button>` : '';
-    const totalRSVPs = committedArr.length + totalInterested;
   const proposerBtns = isProposer
     ? `<button onclick="openWAGroupModal('${spin.id}')"
                class="px-3 py-1.5 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
@@ -324,15 +323,13 @@ async function toggleRSVP(spinId, rsvpType) {
     currentUserName = name.trim();
     localStorage.setItem('braycc_user', currentUserName);
   }
-
-  // If already in this state → toggle off (no modal needed)
+  // Toggle OFF if already in this state
   if (userRSVPs[spinId] === rsvpType) {
-    const newAction = 'none';
     try {
       const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: newAction, user: currentUserName })
+        body: JSON.stringify({ action: 'none', user: currentUserName })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -348,24 +345,19 @@ async function toggleRSVP(spinId, rsvpType) {
     }
     return;
   }
-
-  // Otherwise open the modal for phone (+ ICE if committing)
-  openICEModal(spinId, rsvpType);
+  // Open modal for phone (+ ICE if committing)
+  openRSVPModal(spinId, rsvpType);
 }
 
-/* ---------- ICE modals ---------- */
-let pendingRSVP = null;   // { spinId, rsvpType }
-
-function openICEModal(spinId, rsvpType) {
+/* ---------- RSVP modal ---------- */
+function openRSVPModal(spinId, rsvpType) {
   const spin = spinsData.find(s => s.id === spinId);
   if (!spin) return;
   pendingRSVP = { spinId, rsvpType };
 
-  const modal = document.getElementById('ice-modal');
   const form = document.getElementById('ice-form');
   form.reset();
 
-  // Adjust modal contents for the type
   const title = document.getElementById('rsvp-modal-title');
   const subtitle = document.getElementById('rsvp-modal-subtitle');
   const iceSection = document.getElementById('rsvp-ice-section');
@@ -387,11 +379,10 @@ function openICEModal(spinId, rsvpType) {
     submitBtn.innerHTML = '<i class="fa-solid fa-star"></i><span>Save Interest</span>';
   }
 
-  // Prefill phone if we have one saved
   const savedPhone = localStorage.getItem('braycc_user_phone') || '';
   document.getElementById('rsvp-user-phone').value = savedPhone;
 
-  modal.classList.remove('hidden');
+  document.getElementById('ice-modal').classList.remove('hidden');
 }
 
 function closeICEModal() {
@@ -404,17 +395,10 @@ async function submitRSVPWithDetails() {
   const { spinId, rsvpType } = pendingRSVP;
 
   const phone = document.getElementById('rsvp-user-phone').value.trim();
-  if (!phone) {
-    alert('Please enter your phone number.');
-    return;
-  }
+  if (!phone) { alert('Please enter your phone number.'); return; }
   localStorage.setItem('braycc_user_phone', phone);
 
-  const payload = {
-    action: rsvpType,
-    user: currentUserName,
-    phone
-  };
+  const payload = { action: rsvpType, user: currentUserName, phone };
 
   if (rsvpType === 'committed') {
     const ice = {
@@ -450,6 +434,8 @@ async function submitRSVPWithDetails() {
     alert('Could not save: ' + err.message);
   }
 }
+
+/* ---------- View ICE ---------- */
 async function viewICEContacts(spinId) {
   const body = document.getElementById('ice-view-body');
   body.innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>`;
@@ -569,6 +555,102 @@ async function cancelSpin(spinId) {
   } catch (err) {
     alert('Could not cancel: ' + err.message);
   }
+}
+
+/* ---------- Proposer: WhatsApp group builder ---------- */
+async function openWAGroupModal(spinId) {
+  const body = document.getElementById('wa-group-body');
+  if (!body) { alert('Modal missing — please refresh the page.'); return; }
+  body.innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>`;
+  document.getElementById('wa-group-modal').classList.remove('hidden');
+
+  try {
+    const res = await fetch(
+      `/api/spins?waGroup=1&id=${encodeURIComponent(spinId)}&user=${encodeURIComponent(currentUserName)}`
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const { contacts, suggestedMessage } = await res.json();
+
+    if (!contacts || contacts.length === 0) {
+      body.innerHTML = `
+        <p class="text-sm text-slate-600">No phone numbers yet — nobody who's RSVP'd has shared a number.</p>
+        <p class="text-xs text-slate-500 mt-2">As riders commit or mark interest, their numbers will appear here.</p>`;
+      return;
+    }
+
+    const numbersOnly = contacts.map(c => c.phone).join(', ');
+
+    body.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-500">
+          <span>Riders (${contacts.length})</span>
+          <button onclick="copyAllPhoneNumbers()" class="text-[#25D366] hover:text-[#1DA851] flex items-center gap-1">
+            <i class="fa-solid fa-copy"></i> Copy all numbers
+          </button>
+        </div>
+        <div class="space-y-1.5 max-h-64 overflow-y-auto">
+          ${contacts.map(c => `
+            <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2">
+              <div class="min-w-0">
+                <div class="text-sm font-bold text-slate-900 truncate">${escapeHtml(c.name)}</div>
+                <div class="text-[11px] font-mono text-slate-600">${escapeHtml(c.phone)}</div>
+              </div>
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded ${c.status === 'Committed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${c.status}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="border-t pt-3">
+        <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-1.5">Suggested group message</div>
+        <textarea id="wa-suggested-msg" readonly rows="6" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-mono">${escapeHtml(suggestedMessage || '')}</textarea>
+        <button onclick="copySuggestedMessage()" class="mt-2 w-full px-3 py-2 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1">
+          <i class="fa-solid fa-copy"></i> Copy message for group description
+        </button>
+      </div>
+
+      <details class="text-xs">
+        <summary class="cursor-pointer font-bold text-slate-700 hover:text-clubPurple">How to create the WhatsApp group</summary>
+        <ol class="list-decimal pl-5 mt-2 space-y-1 text-slate-600">
+          <li>Open WhatsApp → New Group</li>
+          <li>Add each number above as a participant</li>
+          <li>Name the group: <strong>BrayCC Spin</strong></li>
+          <li>Paste the suggested message as the group description</li>
+          <li>Send — everyone's notified</li>
+        </ol>
+      </details>
+
+      <input type="hidden" id="wa-hidden-numbers" value="${escapeHtml(numbersOnly)}">
+    `;
+  } catch (err) {
+    body.innerHTML = `<p class="text-sm text-red-600">${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function closeWAGroupModal() {
+  const m = document.getElementById('wa-group-modal');
+  if (m) m.classList.add('hidden');
+}
+
+function copyAllPhoneNumbers() {
+  const el = document.getElementById('wa-hidden-numbers');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(
+    () => alert('Phone numbers copied to clipboard.'),
+    () => alert('Copy failed — please copy the numbers manually.')
+  );
+}
+
+function copySuggestedMessage() {
+  const el = document.getElementById('wa-suggested-msg');
+  if (!el) return;
+  navigator.clipboard.writeText(el.value).then(
+    () => alert('Message copied to clipboard.'),
+    () => alert('Copy failed — please copy the message manually.')
+  );
 }
 
 /* ---------- Filters ---------- */
@@ -698,6 +780,51 @@ async function submitSpinProposal() {
   }
 }
 
+/* ---------- Floating WhatsApp contact ---------- */
+async function loadWhatsAppNumbers() {
+  try {
+    const res = await fetch('/whatsapp-numbers.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    whatsAppConfig = await res.json();
+    const btn = document.getElementById('wa-float-btn');
+    if (btn && whatsAppConfig && Array.isArray(whatsAppConfig.contacts) && whatsAppConfig.contacts.length > 0) {
+      btn.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.warn('WhatsApp config not loaded:', err.message);
+  }
+}
+function openWhatsAppPicker() {
+  if (!whatsAppConfig || !Array.isArray(whatsAppConfig.contacts)) { alert('No contact numbers configured yet.'); return; }
+  document.getElementById('wa-picker-heading').textContent = whatsAppConfig.heading || 'Contact the club on WhatsApp';
+  document.getElementById('wa-picker-intro').textContent = whatsAppConfig.intro || '';
+  const defaultMsg = whatsAppConfig.defaultMessage || 'Hi, I have a question about BrayCC.';
+  const list = document.getElementById('wa-picker-list');
+  list.innerHTML = whatsAppConfig.contacts.map(c => {
+    const digits = String(c.phone || '').replace(/[^0-9]/g, '');
+    const href = `https://wa.me/${digits}?text=${encodeURIComponent(defaultMsg)}`;
+    return `
+      <a href="${href}" target="_blank" rel="noopener"
+         class="flex items-center justify-between gap-3 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl p-3 transition group">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="bg-[#25D366] group-hover:bg-[#1DA851] w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fa-brands fa-whatsapp text-white text-xl"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-black uppercase tracking-wide text-slate-500">${escapeHtml(c.label || 'Contact')}</div>
+            <div class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(c.name || '')}</div>
+            ${c.description ? `<div class="text-[11px] text-slate-500 truncate">${escapeHtml(c.description)}</div>` : ''}
+          </div>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-emerald-600"></i>
+      </a>`;
+  }).join('');
+  document.getElementById('wa-picker-modal').classList.remove('hidden');
+}
+function closeWhatsAppPicker() {
+  document.getElementById('wa-picker-modal').classList.add('hidden');
+}
+
 /* ---------- PWA / push ---------- */
 function wireNotificationButton() {
   const btn = document.getElementById('enable-notifications');
@@ -745,175 +872,18 @@ function urlBase64ToUint8Array(base64String) {
   for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
   return output;
 }
-/* ---------- Floating WhatsApp contact ---------- */
 
-async function loadWhatsAppNumbers() {
-  try {
-    const res = await fetch('/whatsapp-numbers.json', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    whatsAppConfig = await res.json();
-
-    // Reveal the button once we know a config exists
-    const btn = document.getElementById('wa-float-btn');
-    if (btn && whatsAppConfig && Array.isArray(whatsAppConfig.contacts) && whatsAppConfig.contacts.length > 0) {
-      btn.classList.remove('hidden');
-    }
-  } catch (err) {
-    console.warn('WhatsApp config not loaded:', err.message);
-    // Button stays hidden — silent failure, no UI noise
-  }
-}
-
-function openWhatsAppPicker() {
-  if (!whatsAppConfig || !Array.isArray(whatsAppConfig.contacts)) {
-    alert('No contact numbers configured yet.');
-    return;
-  }
-
-  // Set heading + intro from config
-  document.getElementById('wa-picker-heading').textContent =
-    whatsAppConfig.heading || 'Contact the club on WhatsApp';
-  document.getElementById('wa-picker-intro').textContent =
-    whatsAppConfig.intro || '';
-
-  const defaultMsg = whatsAppConfig.defaultMessage || 'Hi, I have a question about BrayCC.';
-
-  // Render the list of contact rows
-  const list = document.getElementById('wa-picker-list');
-  list.innerHTML = whatsAppConfig.contacts.map(c => {
-    const digits = String(c.phone || '').replace(/[^0-9]/g, '');
-    const href = `https://wa.me/${digits}?text=${encodeURIComponent(defaultMsg)}`;
-    return `
-      <a href="${href}" target="_blank" rel="noopener"
-         class="flex items-center justify-between gap-3 bg-white hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 rounded-xl p-3 transition group">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="bg-[#25D366] group-hover:bg-[#1DA851] w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-            <i class="fa-brands fa-whatsapp text-white text-xl"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="text-xs font-black uppercase tracking-wide text-slate-500">${escapeHtml(c.label || 'Contact')}</div>
-            <div class="font-extrabold text-slate-900 text-sm truncate">${escapeHtml(c.name || '')}</div>
-            ${c.description ? `<div class="text-[11px] text-slate-500 truncate">${escapeHtml(c.description)}</div>` : ''}
-          </div>
-        </div>
-        <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-emerald-600"></i>
-      </a>
-    `;
-  }).join('');
-
-  document.getElementById('wa-picker-modal').classList.remove('hidden');
-}
-
-function closeWhatsAppPicker() {
-  document.getElementById('wa-picker-modal').classList.add('hidden');
-}
-
-// Close picker when tapping the backdrop
+/* ---------- Backdrop close for picker ---------- */
 document.addEventListener('click', (e) => {
   const modal = document.getElementById('wa-picker-modal');
   if (!modal || modal.classList.contains('hidden')) return;
   if (e.target === modal) closeWhatsAppPicker();
 });
-
-// Escape key closes picker
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const modal = document.getElementById('wa-picker-modal');
     if (modal && !modal.classList.contains('hidden')) closeWhatsAppPicker();
+    const waModal = document.getElementById('wa-group-modal');
+    if (waModal && !waModal.classList.contains('hidden')) closeWAGroupModal();
   }
-
-  /* ---------- Proposer: WhatsApp group builder ---------- */
-
-async function openWAGroupModal(spinId) {
-  const body = document.getElementById('wa-group-body');
-  body.innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>`;
-  document.getElementById('wa-group-modal').classList.remove('hidden');
-
-  try {
-    const res = await fetch(
-      `/api/spins?waGroup=1&id=${encodeURIComponent(spinId)}&user=${encodeURIComponent(currentUserName)}`
-    );
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'HTTP ' + res.status);
-    }
-    const { contacts, suggestedMessage } = await res.json();
-
-    if (!contacts || contacts.length === 0) {
-      body.innerHTML = `
-        <p class="text-sm text-slate-600">No phone numbers yet — nobody who's RSVP'd has shared a number.</p>
-        <p class="text-xs text-slate-500 mt-2">As riders commit or mark interest, their numbers will appear here.</p>`;
-      return;
-    }
-
-    const numbersOnly = contacts.map(c => c.phone).join(', ');
-
-    body.innerHTML = `
-      <div class="space-y-2">
-        <div class="flex items-center justify-between text-xs font-black uppercase tracking-wide text-slate-500">
-          <span>Riders (${contacts.length})</span>
-          <button onclick="copyAllPhoneNumbers()" class="text-[#25D366] hover:text-[#1DA851] flex items-center gap-1">
-            <i class="fa-solid fa-copy"></i> Copy all numbers
-          </button>
-        </div>
-        <div id="wa-contacts-list" class="space-y-1.5 max-h-64 overflow-y-auto">
-          ${contacts.map(c => `
-            <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg p-2">
-              <div class="min-w-0">
-                <div class="text-sm font-bold text-slate-900 truncate">${escapeHtml(c.name)}</div>
-                <div class="text-[11px] font-mono text-slate-600">${escapeHtml(c.phone)}</div>
-              </div>
-              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded ${c.status === 'Committed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${c.status}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <div class="border-t pt-3">
-        <div class="text-xs font-black uppercase tracking-wide text-slate-500 mb-1.5">Suggested group message</div>
-        <textarea id="wa-suggested-msg" readonly rows="6" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-mono">${escapeHtml(suggestedMessage)}</textarea>
-        <button onclick="copySuggestedMessage()" class="mt-2 w-full px-3 py-2 bg-[#25D366] hover:bg-[#1DA851] text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1">
-          <i class="fa-solid fa-copy"></i> Copy message for group description
-        </button>
-      </div>
-
-      <details class="text-xs">
-        <summary class="cursor-pointer font-bold text-slate-700 hover:text-clubPurple">How to create the WhatsApp group</summary>
-        <ol class="list-decimal pl-5 mt-2 space-y-1 text-slate-600">
-          <li>Open WhatsApp → New Group</li>
-          <li>Add each number above as a participant</li>
-          <li>Name the group: <strong>${escapeHtml(contacts.length ? 'BrayCC: ' : '')}${escapeHtml(suggestedMessage.split('\\n')[0].replace('🚴 ', ''))}</strong></li>
-          <li>Paste the suggested message as the group description</li>
-          <li>Send — everyone's notified</li>
-        </ol>
-      </details>
-
-      <input type="hidden" id="wa-hidden-numbers" value="${escapeHtml(numbersOnly)}">
-    `;
-  } catch (err) {
-    body.innerHTML = `<p class="text-sm text-red-600">${escapeHtml(err.message)}</p>`;
-  }
-}
-
-function closeWAGroupModal() {
-  document.getElementById('wa-group-modal').classList.add('hidden');
-}
-
-function copyAllPhoneNumbers() {
-  const el = document.getElementById('wa-hidden-numbers');
-  if (!el) return;
-  navigator.clipboard.writeText(el.value).then(
-    () => alert('Phone numbers copied to clipboard.'),
-    () => alert('Copy failed — please copy the numbers manually.')
-  );
-}
-
-function copySuggestedMessage() {
-  const el = document.getElementById('wa-suggested-msg');
-  if (!el) return;
-  navigator.clipboard.writeText(el.value).then(
-    () => alert('Message copied to clipboard.'),
-    () => alert('Copy failed — please copy the message manually.')
-  );
-}
 });
