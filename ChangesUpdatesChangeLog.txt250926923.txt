@@ -1,0 +1,110 @@
+BrayCC Spin Hub — Changelog
+============================
+
+Version: ICE Contacts + Admin Panel
+Date: 2026-09-25
+
+
+FILES CREATED
+-------------
+netlify/functions/ice.js
+  - New endpoint GET /api/ice?id=<spinId>&user=<name>
+  - Returns ICE contacts for a spin, only to the spin proposer.
+  - Returns 403 if requesting user is not the proposer.
+
+netlify/functions/cleanup-ice.js
+  - Scheduled function. Runs daily at 03:00 UTC.
+  - Removes ICE details from any committed rider whose spin start
+    time was more than 24 hours ago.
+
+netlify/functions/admin.js
+  - New admin API. Protected by X-Admin-Token header matching
+    ADMIN_TOKEN_SECRET env var.
+  - GET    /api/admin?full=1        → returns all spins incl. ICE + subs
+  - PATCH  /api/admin?id=<spinId>   → edit any spin field
+  - DELETE /api/admin?id=<spinId>   → delete entire spin
+  - DELETE /api/admin?id=<spinId>&rider=<name>
+                                    → remove one rider from a spin
+
+public/admin.html
+  - Full admin UI at /admin.html
+  - Password-protected login (uses ADMIN_TOKEN_SECRET).
+  - Lists all spins with full ICE details visible.
+  - Edit any spin: title, type, date, time, location, distance,
+    pace, minRiders, weather, author, phone, mapLink, mudguards.
+  - Edit ICE per rider inside a spin.
+  - Delete any spin, remove any committed rider, remove interested.
+  - Shows push subscriber count and a list of subscriptions.
+
+public/admin.js
+  - Client logic for the admin panel.
+  - Caches admin token in sessionStorage so it survives page refresh
+    but not browser close.
+
+ChangesUpdatesChangeLog.txt
+  - This file.
+
+
+FILES MODIFIED
+--------------
+netlify/functions/spins.js
+  - Committed riders are now objects { name, ice, committedAt }
+    instead of plain strings.
+  - PATCH now REQUIRES an "ice" object when action is "committed":
+    { name, phone, relation?, notes? }
+  - GET returns sanitised spins: ICE values stripped, but a
+    "hasICE" boolean is included per committed rider.
+  - Read-time purge: any spin older than 24 hours has ICE wiped on
+    every GET, as a fallback to the scheduled cleanup.
+  - Backwards-compatible: existing spins with committed as
+    ["name1","name2"] still work.
+
+public/app.js
+  - Committing now opens an ICE modal. Without ICE details the
+    commit is rejected by the server.
+  - Proposer sees a red "ICE Contacts" button on their own spins
+    (only if at least one rider has ICE on file).
+  - That button opens a modal that fetches /api/ice and displays
+    each rider's ICE contact.
+  - Handles the new committed-as-objects data shape.
+
+public/index.html
+  - Added two modals before </main>:
+      #ice-modal       → ICE entry when committing
+      #ice-view-modal  → ICE list shown to the proposer
+  - Preserved all pace group updates from the previous release
+    (Red=Leisurely, Orange=Moderate, Yellow=Steady, Green=Brisk,
+    Blue=Fastest).
+
+public/sw.js
+  - Bumped cache version braycc-v1 → braycc-v3 so browsers
+    fetch the new app.js and index.html.
+
+
+ENVIRONMENT VARIABLES
+---------------------
+No new variables required. Uses existing:
+  - ADMIN_TOKEN_SECRET   (for admin.js auth)
+
+
+URL ROUTES ADDED
+----------------
+GET    /admin.html
+GET    /api/ice?id=<spinId>&user=<name>
+GET    /api/admin?full=1
+PATCH  /api/admin?id=<spinId>
+DELETE /api/admin?id=<spinId>
+DELETE /api/admin?id=<spinId>&rider=<name>
+
+
+BEHAVIOUR NOTES
+---------------
+- ICE details are visible to:
+    1. The spin proposer (via /api/ice, matched by author name)
+    2. The admin (via /api/admin, matched by ADMIN_TOKEN_SECRET)
+- ICE details are auto-deleted 24 hours after a spin's scheduled
+  start time by BOTH a read-time purge and a nightly cron job.
+- Committing without ICE is not possible; the server rejects it.
+- The admin token should be kept secret. Change it in Netlify's
+  Environment variables whenever needed — the admin page
+  will accept whatever value you set.
