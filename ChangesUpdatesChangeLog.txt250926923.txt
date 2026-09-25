@@ -108,3 +108,61 @@ BEHAVIOUR NOTES
 - The admin token should be kept secret. Change it in Netlify's
   Environment variables whenever needed — the admin page
   will accept whatever value you set.
+
+
+
+  ------------------------------------------------------------
+Version: Proposer Edit + Cancel
+Date: 2026-09-25
+------------------------------------------------------------
+
+FEATURE: Proposer can now Edit and Cancel their own spins.
+
+FILES MODIFIED
+--------------
+netlify/functions/spins.js
+  - Added DELETE handler. Authorised by either:
+      1. Matching user name (spin.author) sent as ?user=... in query
+      2. Valid X-Admin-Token header (admins always allowed)
+  - On successful delete, fires a push notification to subscribers
+    titled "❌ Spin Cancelled" with the spin title, date, and time.
+  - Added proposer-edit branch to PATCH. Triggered by sending
+    { _edit: true, _requester: <name>, ...fields } to the same endpoint.
+    Only the spin author (or admin) can use this path.
+  - Editable fields for proposer: title, date, time, location,
+    distance, pace, minRiders, weatherPolicy, phone, mapLink,
+    mudguardsRequired. Committed riders and ICE are preserved.
+
+public/app.js
+  - renderSpinCard: if the current user is the proposer of the
+    spin, a "Yours" badge appears and an "Organiser Tools" row
+    is added with Edit and Cancel buttons.
+  - openEditSpinModal / saveProposerEdit: new inline edit modal
+    that only proposers see. Pre-fills all fields, sends PATCH
+    with _edit: true.
+  - openConfirmCancel / cancelSpin: new confirm modal, then
+    DELETE to /api/spins?id=...&user=<name>.
+  - injectProposerModals: both new modals are injected into the
+    DOM at load time via JS. No changes to index.html needed.
+
+public/sw.js
+  - Cache version bumped braycc-v3 → braycc-v4 to force all
+    browsers to fetch the new app.js on next visit.
+
+PUBLIC BEHAVIOUR CHANGES
+------------------------
+- Spin cards proposed by you now show a purple "Yours" badge.
+- A dotted border section labelled "Organiser Tools:" appears
+  with two buttons: Edit and Cancel.
+- Edit opens a full modal to change any field of your spin.
+  Existing RSVPs, ICE contacts, and committed riders are kept.
+- Cancel permanently deletes the spin (with confirmation).
+  Subscribers are notified via push that it was cancelled.
+- Other users do not see these buttons — they can only RSVP.
+
+SECURITY NOTE
+-------------
+Authorisation is by name matching (as with the rest of the app),
+plus the ADMIN_TOKEN_SECRET header for admin override. This is
+appropriate for a small club. For stricter control, add real
+authentication in a future update.

@@ -16,11 +16,121 @@ window.addEventListener('DOMContentLoaded', () => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   document.getElementById('prop-date').value = tomorrow.toISOString().split('T')[0];
+  injectProposerModals();
   wireNotificationButton();
   registerServiceWorker();
   loadSpins();
 });
 
+/* ---------- Inject proposer edit + cancel modals ---------- */
+function injectProposerModals() {
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <!-- PROPOSER EDIT SPIN MODAL -->
+    <div id="edit-spin-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
+        <div class="bg-gradient-to-r from-clubPurple to-clubBlue p-4 text-white flex items-center justify-between rounded-t-xl">
+          <h3 class="font-extrabold flex items-center"><i class="fa-solid fa-pen-to-square mr-2"></i>Edit My Spin</h3>
+          <button onclick="closeEditSpinModal()" class="text-white/80 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="edit-spin-form" onsubmit="event.preventDefault(); saveProposerEdit();" class="p-5 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Title</label>
+              <input type="text" id="es-title" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date</label>
+              <input type="date" id="es-date" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Time</label>
+              <input type="time" id="es-time" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Location</label>
+              <input type="text" id="es-location" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance (km)</label>
+              <input type="number" id="es-distance" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Pace</label>
+              <select id="es-pace" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+                <option value="Red">Red — Leisurely</option>
+                <option value="Orange">Orange — Moderate</option>
+                <option value="Yellow">Yellow — Steady</option>
+                <option value="Green">Green — Brisk</option>
+                <option value="Blue">Blue — Fastest</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Min Riders</label>
+              <input type="number" id="es-minriders" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Weather Policy</label>
+              <select id="es-weather" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+                <option value="All-Weather">All-Weather</option>
+                <option value="Fair-Weather Only">Fair-Weather Only</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp Phone</label>
+              <input type="tel" id="es-phone" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Map Link</label>
+              <input type="url" id="es-maplink" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="inline-flex items-center space-x-2">
+                <input type="checkbox" id="es-mudguards" class="w-4 h-4">
+                <span class="text-xs font-bold text-slate-800">Mudguards Required</span>
+              </label>
+            </div>
+          </div>
+          <div class="bg-amber-50 border-l-4 border-amber-500 p-2.5 rounded text-xs text-slate-700">
+            <i class="fa-solid fa-circle-info text-amber-600 mr-1"></i>
+            Changes apply immediately. Existing RSVPs and ICE contacts are preserved.
+          </div>
+          <div class="flex justify-between pt-3 border-t">
+            <button type="button" onclick="closeEditSpinModal()" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Cancel</button>
+            <button type="submit" class="px-6 py-2 bg-clubBlue hover:bg-clubBlueDark text-white font-bold rounded-lg text-sm">
+              <i class="fa-solid fa-save mr-1"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- CONFIRM CANCEL MODAL -->
+    <div id="confirm-cancel-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 p-4 text-white rounded-t-xl">
+          <h3 class="font-extrabold flex items-center"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Cancel This Spin?</h3>
+        </div>
+        <div class="p-5 space-y-3">
+          <p class="text-sm text-slate-700">This will <strong>permanently delete</strong> the spin, all committed riders, and all ICE contacts collected for it.</p>
+          <p class="text-xs text-slate-500">Subscribers with push notifications enabled will be notified that it was cancelled.</p>
+          <div class="bg-red-50 border-l-4 border-red-500 p-3 rounded text-xs text-red-900 font-semibold">
+            This cannot be undone.
+          </div>
+        </div>
+        <div class="bg-slate-50 p-4 flex justify-end gap-2 border-t rounded-b-xl">
+          <button type="button" onclick="closeConfirmCancel()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Keep Spin</button>
+          <button type="button" id="confirm-cancel-btn" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm">
+            <i class="fa-solid fa-trash mr-1"></i> Yes, Cancel Spin
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(container);
+}
+
+/* ---------- Tabs ---------- */
 function switchTab(tabName) {
   const upcomingBtn = document.getElementById('tab-upcoming-btn');
   const proposeBtn = document.getElementById('tab-propose-btn');
@@ -37,6 +147,7 @@ function switchTab(tabName) {
   }
 }
 
+/* ---------- Load spins ---------- */
 async function loadSpins() {
   const loading = document.getElementById('loading-spins');
   try {
@@ -60,6 +171,7 @@ async function loadSpins() {
   }
 }
 
+/* ---------- Render ---------- */
 function renderSpins() {
   const container = document.getElementById('spins-list-container');
   const noSpinsNotice = document.getElementById('no-spins-notice');
@@ -111,14 +223,22 @@ function renderSpinCard(spin) {
     ? `<button onclick="viewICEContacts('${spin.id}')"
                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
          <i class="fa-solid fa-heart-pulse"></i><span>ICE Contacts</span></button>` : '';
+  const proposerBtns = isProposer
+    ? `<button onclick="openEditSpinModal('${spin.id}')"
+               class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
+         <i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
+       <button onclick="openConfirmCancel('${spin.id}')"
+               class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
+         <i class="fa-solid fa-trash"></i><span>Cancel</span></button>` : '';
 
   return `
-    <div class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden ${isProposer ? 'ring-2 ring-clubPurple/20' : ''}">
       <div class="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center space-x-2">
           <span class="bg-purple-900 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center">
             <i class="${getSpinTypeIcon(spin.type)} mr-1.5"></i> ${escapeHtml(spin.type)}</span>
           <span class="pace-badge-${spin.pace} text-xs font-bold px-2.5 py-1 rounded-md">${spin.pace} Pace</span>
+          ${isProposer ? `<span class="bg-purple-100 text-clubPurple text-[10px] font-black uppercase px-2 py-1 rounded border border-purple-300"><i class="fa-solid fa-star mr-1"></i>Yours</span>` : ''}
         </div>
         <div class="flex items-center space-x-2">${mudguardBadge}${weatherBadge}</div>
       </div>
@@ -132,7 +252,7 @@ function renderSpinCard(spin) {
               <span><i class="fa-solid fa-route text-clubBlue mr-1"></i> ${spin.distance} km</span>
             </div>
           </div>
-          <div class="flex items-center gap-2">${mapBtn}${iceBtn}</div>
+          <div class="flex flex-wrap items-center gap-2">${mapBtn}${iceBtn}</div>
         </div>
         <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
           <div>
@@ -162,6 +282,11 @@ function renderSpinCard(spin) {
               <i class="fa-solid fa-star"></i><span>Interested</span></button>
           </div>
         </div>
+        ${isProposer ? `
+          <div class="mt-3 pt-3 border-t border-dashed border-purple-200 flex flex-wrap gap-2 items-center">
+            <span class="text-[10px] font-black uppercase text-clubPurple">Organiser Tools:</span>
+            ${proposerBtns}
+          </div>` : ''}
       </div>
     </div>`;
 }
@@ -179,321 +304,15 @@ function getSpinTypeIcon(type) {
     default: return 'fa-solid fa-bicycle';
   }
 }
-
 function escapeHtml(str) {
   return String(str == null ? '' : str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/* ---------- RSVP with ICE enforcement ---------- */
-
+/* ---------- RSVP ---------- */
 async function toggleRSVP(spinId, rsvpType) {
-  // Step 1: ensure we know the user's name
   if (!currentUserName) {
     const name = prompt('Enter your name to RSVP:');
     if (!name || !name.trim()) return;
-    currentUserName = name.trim();
-    localStorage.setItem('braycc_user', currentUserName);
-  }
-
-  // Step 2: if user is about to commit (not already committed), open ICE modal
-  if (rsvpType === 'committed' && userRSVPs[spinId] !== 'committed') {
-    openICEModal(spinId);
-    return;
-  }
-
-  // Step 3: for interested / uncommit, send to server directly
-  const newAction = userRSVPs[spinId] === rsvpType ? 'none' : rsvpType;
-
-  try {
-    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: newAction, user: currentUserName })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'HTTP ' + res.status);
-    }
-    const { spin } = await res.json();
-    const idx = spinsData.findIndex((s) => s.id === spinId);
-    if (idx !== -1) spinsData[idx] = spin;
-    userRSVPs[spinId] = newAction;
-    renderSpins();
-  } catch (err) {
-    alert('Could not save RSVP: ' + err.message);
-  }
-}
-
-function openICEModal(spinId) {
-  const spin = spinsData.find(s => s.id === spinId);
-  if (!spin) return;
-  pendingICECommit = { spinId, rsvpType: 'committed' };
-  document.getElementById('ice-form').reset();
-  document.getElementById('ice-modal').classList.remove('hidden');
-}
-
-function closeICEModal() {
-  pendingICECommit = null;
-  document.getElementById('ice-modal').classList.add('hidden');
-}
-
-async function submitICEAndCommit() {
-  if (!pendingICECommit) return;
-  const ice = {
-    name: document.getElementById('ice-name').value.trim(),
-    phone: document.getElementById('ice-phone').value.trim(),
-    relation: document.getElementById('ice-relation').value,
-    notes: document.getElementById('ice-notes').value.trim()
-  };
-  if (!ice.name || !ice.phone) {
-    alert('Please enter both the ICE contact name and phone.');
-    return;
-  }
-  const { spinId } = pendingICECommit;
-  try {
-    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'committed', user: currentUserName, ice })
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'HTTP ' + res.status);
-    }
-    const { spin } = await res.json();
-    const idx = spinsData.findIndex((s) => s.id === spinId);
-    if (idx !== -1) spinsData[idx] = spin;
-    userRSVPs[spinId] = 'committed';
-    closeICEModal();
-    renderSpins();
-  } catch (err) {
-    alert('Could not commit: ' + err.message);
-  }
-}
-
-async function viewICEContacts(spinId) {
-  const body = document.getElementById('ice-view-body');
-  body.innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>`;
-  document.getElementById('ice-view-modal').classList.remove('hidden');
-  try {
-    const res = await fetch(`/api/ice?id=${encodeURIComponent(spinId)}&user=${encodeURIComponent(currentUserName)}`);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'HTTP ' + res.status);
-    }
-    const { contacts } = await res.json();
-    if (!contacts || contacts.length === 0) {
-      body.innerHTML = `<p class="text-sm text-slate-500 text-center py-6">No ICE contacts recorded yet.</p>`;
-      return;
-    }
-    body.innerHTML = contacts.map(c => `
-      <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
-        <div class="flex items-center justify-between">
-          <span class="font-extrabold text-slate-900 text-sm">${escapeHtml(c.rider)}</span>
-          ${c.ice.relation ? `<span class="text-[10px] uppercase font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded">${escapeHtml(c.ice.relation)}</span>` : ''}
-        </div>
-        <div class="text-xs text-slate-700 mt-2 space-y-0.5">
-          <div><i class="fa-solid fa-user text-clubPurple mr-1"></i> <strong>${escapeHtml(c.ice.name)}</strong></div>
-          <div><i class="fa-solid fa-phone text-emerald-600 mr-1"></i> <a href="tel:${escapeHtml(c.ice.phone)}" class="font-bold text-emerald-700 underline">${escapeHtml(c.ice.phone)}</a></div>
-          ${c.ice.notes ? `<div class="mt-1 text-[11px] italic text-slate-600"><i class="fa-solid fa-notes-medical text-amber-600 mr-1"></i>${escapeHtml(c.ice.notes)}</div>` : ''}
-        </div>
-      </div>`).join('');
-  } catch (err) {
-    body.innerHTML = `<p class="text-sm text-red-600 text-center py-6">${escapeHtml(err.message)}</p>`;
-  }
-}
-
-function closeICEViewModal() {
-  document.getElementById('ice-view-modal').classList.add('hidden');
-}
-
-/* ---------- Filters ---------- */
-
-function applyFilters() { renderSpins(); }
-function resetFilters() {
-  document.getElementById('filter-type').value = 'ALL';
-  document.getElementById('filter-pace').value = 'ALL';
-  renderSpins();
-}
-
-/* ---------- Form navigation ---------- */
-
-function goToStep(stepNumber) {
-  if (stepNumber > currentFormStep && !validateStep(currentFormStep)) return;
-  document.getElementById('form-step-' + currentFormStep).classList.add('hidden');
-  document.getElementById('form-step-' + stepNumber).classList.remove('hidden');
-  for (let i = 1; i <= 4; i++) {
-    const label = document.getElementById('step-label-' + i);
-    if (i === stepNumber) label.className = 'text-clubPurple font-extrabold';
-    else if (i < stepNumber) label.className = 'text-emerald-600 font-bold';
-    else label.className = 'text-slate-400';
-  }
-  currentFormStep = stepNumber;
-  if (stepNumber === 4) populateReviewCard();
-}
-
-function validateStep(step) {
-  if (step === 1) {
-    const title = document.getElementById('prop-title').value.trim();
-    const dist = document.getElementById('prop-distance').value;
-    const date = document.getElementById('prop-date').value;
-    const location = document.getElementById('prop-location').value.trim();
-    if (!title || !dist || !date || !location) {
-      alert('Please fill in all required fields (Title, Distance, Date, Location).');
-      return false;
-    }
-  } else if (step === 3) {
-    const author = document.getElementById('prop-author').value.trim();
-    const phone = document.getElementById('prop-phone').value.trim();
-    if (!author || !phone) {
-      alert('Please enter your name and WhatsApp contact phone number.');
-      return false;
-    }
-  }
-  return true;
-}
-
-function selectPace(paceColor) {
-  ['Red', 'Orange', 'Yellow', 'Green', 'Blue'].forEach((p) => {
-    const el = document.getElementById('pace-opt-' + p);
-    if (el) el.classList.remove('selected');
-  });
-  const chosen = document.getElementById('pace-opt-' + paceColor);
-  if (chosen) chosen.classList.add('selected');
-  selectedPaceInForm = paceColor;
-}
-
-function adjustMinRiders(delta) {
-  minRidersInForm = Math.max(1, minRidersInForm + delta);
-  document.getElementById('prop-min-riders-display').textContent = minRidersInForm;
-}
-
-function populateReviewCard() {
-  const spinType = document.querySelector('input[name="spinType"]:checked').value;
-  const title = document.getElementById('prop-title').value;
-  const distance = document.getElementById('prop-distance').value;
-  const date = document.getElementById('prop-date').value;
-  const time = document.getElementById('prop-time').value;
-  const location = document.getElementById('prop-location').value;
-  const weatherPolicy = document.querySelector('input[name="weatherPolicy"]:checked').value;
-  const mudguards = document.getElementById('prop-mudguards').checked;
-  const author = document.getElementById('prop-author').value;
-  const phone = document.getElementById('prop-phone').value;
-  const container = document.getElementById('review-card-container');
-  container.innerHTML = `
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="bg-purple-900 text-white text-xs font-bold px-2 py-0.5 rounded">${escapeHtml(spinType)}</span>
-      <span class="pace-badge-${selectedPaceInForm} text-xs font-bold px-2 py-0.5 rounded">${selectedPaceInForm} Pace</span>
-      <span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded">${escapeHtml(weatherPolicy)}</span>
-      ${mudguards ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-shield-halved text-clubPurple mr-1"></i> Mudguards Required</span>` : ''}
-    </div>
-    <h4 class="text-lg font-black text-slate-900 mt-1">${escapeHtml(title)}</h4>
-    <div class="text-xs text-slate-600 space-y-1">
-      <p><strong>When:</strong> ${escapeHtml(date)} at ${escapeHtml(time)}</p>
-      <p><strong>Start:</strong> ${escapeHtml(location)} (${escapeHtml(distance)} km)</p>
-      <p><strong>Minimum Riders Required:</strong> ${minRidersInForm} riders</p>
-      <p><strong>Proposer Contact:</strong> ${escapeHtml(author)} (${escapeHtml(phone)})</p>
-    </div>`;
-}
-
-async function submitSpinProposal() {
-  const payload = {
-    title: document.getElementById('prop-title').value.trim(),
-    type: document.querySelector('input[name="spinType"]:checked').value,
-    date: document.getElementById('prop-date').value,
-    time: document.getElementById('prop-time').value,
-    location: document.getElementById('prop-location').value.trim(),
-    distance: parseInt(document.getElementById('prop-distance').value, 10),
-    mapLink: document.getElementById('prop-map-link').value.trim() || null,
-    pace: selectedPaceInForm,
-    minRiders: minRidersInForm,
-    weatherPolicy: document.querySelector('input[name="weatherPolicy"]:checked').value,
-    mudguardsRequired: document.getElementById('prop-mudguards').checked,
-    author: document.getElementById('prop-author').value.trim(),
-    phone: document.getElementById('prop-phone').value.trim()
-  };
-  try {
-    const res = await fetch('/api/spins', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      const raw = err.error || `HTTP ${res.status}`;
-      const friendly = /522|502|503|504/.test(raw)
-        ? 'The club server is temporarily unavailable. Please try again in a minute.' : raw;
-      throw new Error(friendly);
-    }
-    const { spin } = await res.json();
-    spinsData.unshift(spin);
-    currentUserName = spin.author;
-    localStorage.setItem('braycc_user', currentUserName);
-    userRSVPs[spin.id] = 'committed';
-    document.getElementById('propose-spin-form').reset();
-    document.getElementById('prop-min-riders-display').textContent = '3';
-    minRidersInForm = 3;
-    selectPace('Yellow');
-    currentFormStep = 1;
-    goToStep(1);
-    renderSpins();
-    switchTab('upcoming');
-    alert('Success! Your spin has been published to the club hub.');
-  } catch (err) {
-    alert('Failed to publish: ' + err.message);
-  }
-}
-
-/* ---------- PWA / push ---------- */
-
-function wireNotificationButton() {
-  const btn = document.getElementById('enable-notifications');
-  if (!btn) return;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) { btn.style.display = 'none'; return; }
-  btn.addEventListener('click', enablePush);
-}
-
-async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  try {
-    const reg = await navigator.serviceWorker.register('/sw.js');
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) {
-      const btn = document.getElementById('enable-notifications');
-      if (btn) { btn.innerHTML = '<i class="fa-solid fa-bell"></i><span>Alerts On</span>'; btn.classList.add('opacity-70'); }
-    }
-  } catch (err) { console.warn('SW registration failed:', err); }
-}
-
-async function enablePush() {
-  try {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('Push not supported.'); return; }
-    const reg = await navigator.serviceWorker.ready;
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { alert('Notifications were blocked.'); return; }
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
-    const res = await fetch('/api/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sub)
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const btn = document.getElementById('enable-notifications');
-    if (btn) { btn.innerHTML = '<i class="fa-solid fa-bell"></i><span>Alerts On</span>'; btn.classList.add('opacity-70'); }
-    alert('You will now be notified about new club spins!');
-  } catch (err) { alert('Could not enable alerts: ' + err.message); }
-}
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
-  return output;
-}
+    currentUserName = name
