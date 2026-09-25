@@ -315,4 +315,368 @@ async function toggleRSVP(spinId, rsvpType) {
   if (!currentUserName) {
     const name = prompt('Enter your name to RSVP:');
     if (!name || !name.trim()) return;
-    currentUserName = name
+    currentUserName = name.trim();
+    localStorage.setItem('braycc_user', currentUserName);
+  }
+  if (rsvpType === 'committed' && userRSVPs[spinId] !== 'committed') {
+    openICEModal(spinId);
+    return;
+  }
+  const newAction = userRSVPs[spinId] === rsvpType ? 'none' : rsvpType;
+  try {
+    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: newAction, user: currentUserName })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const { spin } = await res.json();
+    const idx = spinsData.findIndex((s) => s.id === spinId);
+    if (idx !== -1) spinsData[idx] = spin;
+    userRSVPs[spinId] = newAction;
+    renderSpins();
+  } catch (err) {
+    alert('Could not save RSVP: ' + err.message);
+  }
+}
+
+/* ---------- ICE modals ---------- */
+function openICEModal(spinId) {
+  const spin = spinsData.find(s => s.id === spinId);
+  if (!spin) return;
+  pendingICECommit = { spinId, rsvpType: 'committed' };
+  document.getElementById('ice-form').reset();
+  document.getElementById('ice-modal').classList.remove('hidden');
+}
+function closeICEModal() {
+  pendingICECommit = null;
+  document.getElementById('ice-modal').classList.add('hidden');
+}
+async function submitICEAndCommit() {
+  if (!pendingICECommit) return;
+  const ice = {
+    name: document.getElementById('ice-name').value.trim(),
+    phone: document.getElementById('ice-phone').value.trim(),
+    relation: document.getElementById('ice-relation').value,
+    notes: document.getElementById('ice-notes').value.trim()
+  };
+  if (!ice.name || !ice.phone) { alert('Please enter both the ICE contact name and phone.'); return; }
+  const { spinId } = pendingICECommit;
+  try {
+    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'committed', user: currentUserName, ice })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const { spin } = await res.json();
+    const idx = spinsData.findIndex((s) => s.id === spinId);
+    if (idx !== -1) spinsData[idx] = spin;
+    userRSVPs[spinId] = 'committed';
+    closeICEModal();
+    renderSpins();
+  } catch (err) {
+    alert('Could not commit: ' + err.message);
+  }
+}
+async function viewICEContacts(spinId) {
+  const body = document.getElementById('ice-view-body');
+  body.innerHTML = `<div class="text-center text-slate-500 py-6"><i class="fa-solid fa-spinner fa-spin text-2xl"></i></div>`;
+  document.getElementById('ice-view-modal').classList.remove('hidden');
+  try {
+    const res = await fetch(`/api/ice?id=${encodeURIComponent(spinId)}&user=${encodeURIComponent(currentUserName)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const { contacts } = await res.json();
+    if (!contacts || contacts.length === 0) {
+      body.innerHTML = `<p class="text-sm text-slate-500 text-center py-6">No ICE contacts recorded yet.</p>`;
+      return;
+    }
+    body.innerHTML = contacts.map(c => `
+      <div class="bg-slate-50 border border-slate-200 rounded-lg p-3">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-slate-900 text-sm">${escapeHtml(c.rider)}</span>
+          ${c.ice.relation ? `<span class="text-[10px] uppercase font-bold bg-purple-100 text-purple-800 px-2 py-0.5 rounded">${escapeHtml(c.ice.relation)}</span>` : ''}
+        </div>
+        <div class="text-xs text-slate-700 mt-2 space-y-0.5">
+          <div><i class="fa-solid fa-user text-clubPurple mr-1"></i> <strong>${escapeHtml(c.ice.name)}</strong></div>
+          <div><i class="fa-solid fa-phone text-emerald-600 mr-1"></i> <a href="tel:${escapeHtml(c.ice.phone)}" class="font-bold text-emerald-700 underline">${escapeHtml(c.ice.phone)}</a></div>
+          ${c.ice.notes ? `<div class="mt-1 text-[11px] italic text-slate-600"><i class="fa-solid fa-notes-medical text-amber-600 mr-1"></i>${escapeHtml(c.ice.notes)}</div>` : ''}
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    body.innerHTML = `<p class="text-sm text-red-600 text-center py-6">${escapeHtml(err.message)}</p>`;
+  }
+}
+function closeICEViewModal() {
+  document.getElementById('ice-view-modal').classList.add('hidden');
+}
+
+/* ---------- Proposer Edit ---------- */
+function openEditSpinModal(spinId) {
+  const spin = spinsData.find(s => s.id === spinId);
+  if (!spin) return;
+  document.getElementById('es-title').value = spin.title || '';
+  document.getElementById('es-date').value = spin.date || '';
+  document.getElementById('es-time').value = spin.time || '09:00';
+  document.getElementById('es-location').value = spin.location || '';
+  document.getElementById('es-distance').value = spin.distance || 0;
+  document.getElementById('es-pace').value = spin.pace || 'Yellow';
+  document.getElementById('es-minriders').value = spin.minRiders || 3;
+  document.getElementById('es-weather').value = spin.weatherPolicy || 'All-Weather';
+  document.getElementById('es-phone').value = spin.phone || '';
+  document.getElementById('es-maplink').value = spin.mapLink || '';
+  document.getElementById('es-mudguards').checked = !!spin.mudguardsRequired;
+  document.getElementById('edit-spin-form').dataset.spinId = spinId;
+  document.getElementById('edit-spin-modal').classList.remove('hidden');
+}
+function closeEditSpinModal() {
+  document.getElementById('edit-spin-modal').classList.add('hidden');
+}
+async function saveProposerEdit() {
+  const spinId = document.getElementById('edit-spin-form').dataset.spinId;
+  const payload = {
+    _edit: true,
+    _requester: currentUserName,
+    author: currentUserName,
+    title: document.getElementById('es-title').value.trim(),
+    date: document.getElementById('es-date').value,
+    time: document.getElementById('es-time').value,
+    location: document.getElementById('es-location').value.trim(),
+    distance: parseInt(document.getElementById('es-distance').value, 10) || 0,
+    pace: document.getElementById('es-pace').value,
+    minRiders: parseInt(document.getElementById('es-minriders').value, 10) || 3,
+    weatherPolicy: document.getElementById('es-weather').value,
+    phone: document.getElementById('es-phone').value.trim(),
+    mapLink: document.getElementById('es-maplink').value.trim() || null,
+    mudguardsRequired: document.getElementById('es-mudguards').checked
+  };
+  try {
+    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    const { spin } = await res.json();
+    const idx = spinsData.findIndex((s) => s.id === spinId);
+    if (idx !== -1) spinsData[idx] = spin;
+    closeEditSpinModal();
+    renderSpins();
+  } catch (err) {
+    alert('Could not save: ' + err.message);
+  }
+}
+
+/* ---------- Proposer Cancel ---------- */
+function openConfirmCancel(spinId) {
+  const btn = document.getElementById('confirm-cancel-btn');
+  btn.onclick = () => cancelSpin(spinId);
+  document.getElementById('confirm-cancel-modal').classList.remove('hidden');
+}
+function closeConfirmCancel() {
+  document.getElementById('confirm-cancel-modal').classList.add('hidden');
+}
+async function cancelSpin(spinId) {
+  try {
+    const res = await fetch('/api/spins?id=' + encodeURIComponent(spinId) + '&user=' + encodeURIComponent(currentUserName), {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    spinsData = spinsData.filter(s => s.id !== spinId);
+    delete userRSVPs[spinId];
+    closeConfirmCancel();
+    renderSpins();
+  } catch (err) {
+    alert('Could not cancel: ' + err.message);
+  }
+}
+
+/* ---------- Filters ---------- */
+function applyFilters() { renderSpins(); }
+function resetFilters() {
+  document.getElementById('filter-type').value = 'ALL';
+  document.getElementById('filter-pace').value = 'ALL';
+  renderSpins();
+}
+
+/* ---------- Form nav ---------- */
+function goToStep(stepNumber) {
+  if (stepNumber > currentFormStep && !validateStep(currentFormStep)) return;
+  document.getElementById('form-step-' + currentFormStep).classList.add('hidden');
+  document.getElementById('form-step-' + stepNumber).classList.remove('hidden');
+  for (let i = 1; i <= 4; i++) {
+    const label = document.getElementById('step-label-' + i);
+    if (i === stepNumber) label.className = 'text-clubPurple font-extrabold';
+    else if (i < stepNumber) label.className = 'text-emerald-600 font-bold';
+    else label.className = 'text-slate-400';
+  }
+  currentFormStep = stepNumber;
+  if (stepNumber === 4) populateReviewCard();
+}
+function validateStep(step) {
+  if (step === 1) {
+    const title = document.getElementById('prop-title').value.trim();
+    const dist = document.getElementById('prop-distance').value;
+    const date = document.getElementById('prop-date').value;
+    const location = document.getElementById('prop-location').value.trim();
+    if (!title || !dist || !date || !location) {
+      alert('Please fill in all required fields (Title, Distance, Date, Location).');
+      return false;
+    }
+  } else if (step === 3) {
+    const author = document.getElementById('prop-author').value.trim();
+    const phone = document.getElementById('prop-phone').value.trim();
+    if (!author || !phone) { alert('Please enter your name and WhatsApp contact phone number.'); return false; }
+  }
+  return true;
+}
+function selectPace(paceColor) {
+  ['Red', 'Orange', 'Yellow', 'Green', 'Blue'].forEach((p) => {
+    const el = document.getElementById('pace-opt-' + p);
+    if (el) el.classList.remove('selected');
+  });
+  const chosen = document.getElementById('pace-opt-' + paceColor);
+  if (chosen) chosen.classList.add('selected');
+  selectedPaceInForm = paceColor;
+}
+function adjustMinRiders(delta) {
+  minRidersInForm = Math.max(1, minRidersInForm + delta);
+  document.getElementById('prop-min-riders-display').textContent = minRidersInForm;
+}
+function populateReviewCard() {
+  const spinType = document.querySelector('input[name="spinType"]:checked').value;
+  const title = document.getElementById('prop-title').value;
+  const distance = document.getElementById('prop-distance').value;
+  const date = document.getElementById('prop-date').value;
+  const time = document.getElementById('prop-time').value;
+  const location = document.getElementById('prop-location').value;
+  const weatherPolicy = document.querySelector('input[name="weatherPolicy"]:checked').value;
+  const mudguards = document.getElementById('prop-mudguards').checked;
+  const author = document.getElementById('prop-author').value;
+  const phone = document.getElementById('prop-phone').value;
+  const container = document.getElementById('review-card-container');
+  container.innerHTML = `
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="bg-purple-900 text-white text-xs font-bold px-2 py-0.5 rounded">${escapeHtml(spinType)}</span>
+      <span class="pace-badge-${selectedPaceInForm} text-xs font-bold px-2 py-0.5 rounded">${selectedPaceInForm} Pace</span>
+      <span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded">${escapeHtml(weatherPolicy)}</span>
+      ${mudguards ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-0.5 rounded"><i class="fa-solid fa-shield-halved text-clubPurple mr-1"></i> Mudguards Required</span>` : ''}
+    </div>
+    <h4 class="text-lg font-black text-slate-900 mt-1">${escapeHtml(title)}</h4>
+    <div class="text-xs text-slate-600 space-y-1">
+      <p><strong>When:</strong> ${escapeHtml(date)} at ${escapeHtml(time)}</p>
+      <p><strong>Start:</strong> ${escapeHtml(location)} (${escapeHtml(distance)} km)</p>
+      <p><strong>Minimum Riders Required:</strong> ${minRidersInForm} riders</p>
+      <p><strong>Proposer Contact:</strong> ${escapeHtml(author)} (${escapeHtml(phone)})</p>
+    </div>`;
+}
+async function submitSpinProposal() {
+  const payload = {
+    title: document.getElementById('prop-title').value.trim(),
+    type: document.querySelector('input[name="spinType"]:checked').value,
+    date: document.getElementById('prop-date').value,
+    time: document.getElementById('prop-time').value,
+    location: document.getElementById('prop-location').value.trim(),
+    distance: parseInt(document.getElementById('prop-distance').value, 10),
+    mapLink: document.getElementById('prop-map-link').value.trim() || null,
+    pace: selectedPaceInForm,
+    minRiders: minRidersInForm,
+    weatherPolicy: document.querySelector('input[name="weatherPolicy"]:checked').value,
+    mudguardsRequired: document.getElementById('prop-mudguards').checked,
+    author: document.getElementById('prop-author').value.trim(),
+    phone: document.getElementById('prop-phone').value.trim()
+  };
+  try {
+    const res = await fetch('/api/spins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const raw = err.error || `HTTP ${res.status}`;
+      const friendly = /522|502|503|504/.test(raw)
+        ? 'The club server is temporarily unavailable. Please try again in a minute.' : raw;
+      throw new Error(friendly);
+    }
+    const { spin } = await res.json();
+    spinsData.unshift(spin);
+    currentUserName = spin.author;
+    localStorage.setItem('braycc_user', currentUserName);
+    userRSVPs[spin.id] = 'committed';
+    document.getElementById('propose-spin-form').reset();
+    document.getElementById('prop-min-riders-display').textContent = '3';
+    minRidersInForm = 3;
+    selectPace('Yellow');
+    currentFormStep = 1;
+    goToStep(1);
+    renderSpins();
+    switchTab('upcoming');
+    alert('Success! Your spin has been published to the club hub.');
+  } catch (err) {
+    alert('Failed to publish: ' + err.message);
+  }
+}
+
+/* ---------- PWA / push ---------- */
+function wireNotificationButton() {
+  const btn = document.getElementById('enable-notifications');
+  if (!btn) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) { btn.style.display = 'none'; return; }
+  btn.addEventListener('click', enablePush);
+}
+async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      const btn = document.getElementById('enable-notifications');
+      if (btn) { btn.innerHTML = '<i class="fa-solid fa-bell"></i><span>Alerts On</span>'; btn.classList.add('opacity-70'); }
+    }
+  } catch (err) { console.warn('SW registration failed:', err); }
+}
+async function enablePush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { alert('Push not supported.'); return; }
+    const reg = await navigator.serviceWorker.ready;
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { alert('Notifications were blocked.'); return; }
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sub)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const btn = document.getElementById('enable-notifications');
+    if (btn) { btn.innerHTML = '<i class="fa-solid fa-bell"></i><span>Alerts On</span>'; btn.classList.add('opacity-70'); }
+    alert('You will now be notified about new club spins!');
+  } catch (err) { alert('Could not enable alerts: ' + err.message); }
+}
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
