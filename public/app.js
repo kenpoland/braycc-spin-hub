@@ -1558,3 +1558,62 @@ async function loadRwgpsJoinLink() {
     console.warn('RWGPS join link not configured:', e.message);
   }
 }
+
+/* =========================================================
+   RIDE WITH GPS — config loader, connect block, helpers
+   ========================================================= */
+
+async function loadRwgpsConfig() {
+  try {
+    const res = await fetch('/api/rwgps-config', { cache: 'no-store' });
+    if (!res.ok) { rwgpsEnabled = false; return; }
+    const data = await res.json();
+    rwgpsEnabled = !!data.enabled;
+  } catch (e) {
+    rwgpsEnabled = false;
+  }
+}
+
+function renderRwgpsConnectBlock(challengeId) {
+  const box = document.getElementById('rwgps-connect-block');
+  if (!box) return;
+
+  if (!rwgpsEnabled) { box.innerHTML = ''; return; }
+  if (!currentUserName) { box.innerHTML = ''; return; }
+
+  box.innerHTML = `
+    <button onclick="openRwgpsLoginModal()"
+            class="w-full mb-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg text-sm flex items-center justify-center space-x-1">
+      <i class="fa-solid fa-link"></i>
+      <span>Connect Ride with GPS</span>
+    </button>
+    <p class="text-[11px] text-slate-500 mb-2">Auto-sync your rides to this challenge. We only read distance, date, and elevation.</p>`;
+}
+
+function openRwgpsLoginModal() {
+  if (!rwgpsEnabled) { alert('Ride with GPS integration is currently disabled.'); return; }
+  const email = prompt('Ride with GPS email:');
+  if (!email) return;
+  const password = prompt('Ride with GPS password:');
+  if (!password) return;
+
+  fetch('/api/rwgps-auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, memberName: currentUserName })
+  })
+  .then(r => r.json().then(j => ({ ok: r.ok, status: r.status, data: j })))
+  .then(({ ok, status, data }) => {
+    if (!ok) throw new Error(data.error || 'HTTP ' + status);
+    alert('Connected! Your Ride with GPS rides will now appear on the leaderboard.');
+    if (currentChallengeDetail) openChallengeDetail(currentChallengeDetail.challenge.id);
+  })
+  .catch(err => alert('Could not connect: ' + err.message));
+}
+
+function scoreEntryValue(challenge, entry) {
+  if (challenge.type === 'distance') return entry.totalKm || 0;
+  if (challenge.type === 'monthly') return (entry.rides || []).length * (challenge.minDistancePerRide || 0);
+  if (challenge.type === 'series') return (entry.seriesRides || []).length * 100;
+  return 0;
+}
