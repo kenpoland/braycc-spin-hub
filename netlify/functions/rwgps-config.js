@@ -1,14 +1,6 @@
 export default async (req, context) => {
-  const raw = process.env.FEATURE_RWGPS;
-  const enabled = String(raw || '').toLowerCase() === 'true';
-  return new Response(JSON.stringify({
-    enabled,
-    debug: {
-      rawValue: raw === undefined ? '<undefined>' : `"${raw}"`,
-      type: typeof raw,
-      length: raw ? raw.length : 0
-    }
-  }), {
+  const enabled = String(process.env.FEATURE_RWGPS || '').toLowerCase() === 'true';
+  return new Response(JSON.stringify({ enabled }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
