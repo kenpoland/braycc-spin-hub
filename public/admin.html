@@ -66,18 +66,22 @@
         </div>
 
         <div id="admin-view" class="hidden space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <div class="text-xs font-bold text-slate-500 uppercase">Total Spins</div>
                     <div id="stat-spins" class="text-2xl font-black text-clubPurple mt-1">0</div>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <div class="text-xs font-bold text-slate-500 uppercase">Total Committed Riders</div>
+                    <div class="text-xs font-bold text-slate-500 uppercase">Committed Riders</div>
                     <div id="stat-riders" class="text-2xl font-black text-emerald-600 mt-1">0</div>
                 </div>
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                     <div class="text-xs font-bold text-slate-500 uppercase">Push Subscribers</div>
                     <div id="stat-subs" class="text-2xl font-black text-clubBlue mt-1">0</div>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm ${(document.getElementById('stat-pending-challenges') || {}).className || ''}">
+                    <div class="text-xs font-bold text-slate-500 uppercase">Pending Challenges</div>
+                    <div id="stat-pending-challenges" class="text-2xl font-black text-amber-600 mt-1">0</div>
                 </div>
             </div>
 
@@ -104,7 +108,22 @@
                 <div id="subs-body" class="p-4 text-xs space-y-2"></div>
             </div>
 
-            <div id="admin-spins" class="space-y-4"></div>
+                        <div id="admin-spins" class="space-y-4"></div>
+
+            <!-- PENDING CHALLENGES -->
+            <div class="mt-8">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="bg-amber-500 px-4 py-3 text-white flex items-center justify-between">
+                        <h3 class="font-extrabold flex items-center">
+                            <i class="fa-solid fa-lightbulb mr-2"></i> Pending Challenge Proposals
+                        </h3>
+                        <span id="pending-challenges-count" class="bg-white/20 px-2 py-0.5 rounded text-xs font-bold">0</span>
+                    </div>
+                    <div id="admin-pending-challenges" class="p-4 space-y-3">
+                        <p class="text-sm text-slate-500 text-center py-4">Loading...</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 

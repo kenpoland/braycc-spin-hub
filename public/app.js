@@ -1310,6 +1310,12 @@ function buildLogFields(challenge) {
 
   if (challenge.type === 'distance') {
     return `
+          ${challenge.windowStart && challenge.windowEnd ? `
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded text-xs text-slate-700 mb-3">
+          <i class="fa-solid fa-calendar text-amber-600 mr-1"></i>
+          <strong>This challenge only accepts rides between ${challenge.windowStart} and ${challenge.windowEnd}.</strong>
+        </div>
+      ` : ''}
       <div>
         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date</label>
         <input type="date" id="log-date" value="${today}" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">

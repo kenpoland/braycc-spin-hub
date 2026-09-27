@@ -239,7 +239,7 @@ export default async (req, context) => {
     }
 
     /* ---------- POST log-distance ---------- */
-    if (method === 'POST' && url.searchParams.get('action') === 'log-distance') {
+        if (method === 'POST' && url.searchParams.get('action') === 'log-distance') {
       const body = await req.json();
       const { challengeId, memberName, km, date, note } = body;
       if (!challengeId || !memberName || !km) {
@@ -247,6 +247,32 @@ export default async (req, context) => {
           status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
         });
       }
+
+      // Look up the challenge to check its window
+      const challenge = data.challenges.find(c => c.id === challengeId);
+      if (!challenge) {
+        return new Response(JSON.stringify({ error: 'Challenge not found' }), {
+          status: 404, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Enforce the date window if the challenge has one
+      const logDate = date || new Date().toISOString().slice(0, 10);
+      if (challenge.windowStart && logDate < challenge.windowStart) {
+        return new Response(JSON.stringify({
+          error: `This challenge only runs from ${challenge.windowStart}. Ride dates must fall within the challenge window.`
+        }), {
+          status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+      if (challenge.windowEnd && logDate > challenge.windowEnd) {
+        return new Response(JSON.stringify({
+          error: `This challenge ended on ${challenge.windowEnd}. Rides after that date can't be logged.`
+        }), {
+          status: 400, headers: { ...cors, 'Content-Type': 'application/json' }
+        });
+      }
+
       const entry = data.challengeEntries.find(e =>
         e.challengeId === challengeId &&
         String(e.memberName).toLowerCase() === String(memberName).toLowerCase()

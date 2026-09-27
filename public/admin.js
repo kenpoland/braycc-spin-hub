@@ -44,11 +44,107 @@ async function bootAdmin() {
   }
 }
 
+let adminChallenges = [];
+
 async function loadData() {
   const data = await api('/api/admin?full=1');
   adminData = data;
   renderAdmin();
   renderStats();
+  loadPendingChallenges();
+}
+
+async function loadPendingChallenges() {
+  try {
+    const res = await fetch('/api/challenges?includePending=1', {
+      headers: { 'X-Admin-Token': ADMIN_TOKEN }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    adminChallenges = (data.challenges || []).filter(c => c.pending === true);
+    renderPendingChallenges();
+  } catch (err) {
+    console.warn('Could not load pending challenges:', err.message);
+    adminChallenges = [];
+    renderPendingChallenges();
+  }
+}
+
+function renderPendingChallenges() {
+  const container = document.getElementById('admin-pending-challenges');
+  const countEl = document.getElementById('pending-challenges-count');
+  const statEl = document.getElementById('stat-pending-challenges');
+
+  if (countEl) countEl.textContent = adminChallenges.length;
+  if (statEl) statEl.textContent = adminChallenges.length;
+
+  if (!container) return;
+
+  if (adminChallenges.length === 0) {
+    container.innerHTML = `<p class="text-sm text-slate-500 text-center py-4"><i class="fa-solid fa-check-circle text-emerald-500 mr-1"></i> No pending proposals — all clear.</p>`;
+    return;
+  }
+
+  container.innerHTML = adminChallenges.map(c => `
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+      <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <span class="bg-amber-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">${escapeHtml(c.type || 'custom')}</span>
+            ${c.org ? `<span class="text-xs text-slate-600 font-semibold">${escapeHtml(c.org)}</span>` : ''}
+          </div>
+          <h4 class="font-black text-slate-900 text-lg">${escapeHtml(c.title)}</h4>
+          <p class="text-sm text-slate-700 mt-1">${escapeHtml(c.description || '')}</p>
+          <div class="text-xs text-slate-600 mt-2 space-y-0.5">
+            <div><i class="fa-solid fa-user text-slate-500 mr-1"></i>Proposed by: <strong>${escapeHtml(c.proposedBy || 'unknown')}</strong></div>
+            ${c.link ? `<div><i class="fa-solid fa-link text-clubBlue mr-1"></i><a href="${escapeHtml(c.link)}" target="_blank" rel="noopener" class="underline">${escapeHtml(c.link)}</a></div>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="approveChallenge('${c.id}')" class="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm transition flex items-center justify-center gap-1">
+          <i class="fa-solid fa-check"></i> Approve
+        </button>
+        <button onclick="rejectChallenge('${c.id}')" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm transition flex items-center justify-center gap-1">
+          <i class="fa-solid fa-xmark"></i> Reject
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function approveChallenge(id) {
+  if (!confirm('Approve this challenge? It will become visible to all members.')) return;
+  try {
+    const res = await fetch('/api/challenges?approve=' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'X-Admin-Token': ADMIN_TOKEN }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    await loadPendingChallenges();
+  } catch (err) {
+    alert('Could not approve: ' + err.message);
+  }
+}
+
+async function rejectChallenge(id) {
+  if (!confirm('Reject this challenge? It will be permanently deleted.')) return;
+  try {
+    const res = await fetch('/api/challenges?reject=' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'X-Admin-Token': ADMIN_TOKEN }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    await loadPendingChallenges();
+  } catch (err) {
+    alert('Could not reject: ' + err.message);
+  }
 }
 
 function renderStats() {
