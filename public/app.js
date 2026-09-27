@@ -133,20 +133,42 @@ function injectProposerModals() {
 /* ---------- Tabs ---------- */
 function switchTab(tabName) {
   const upcomingBtn = document.getElementById('tab-upcoming-btn');
+  const challengesBtn = document.getElementById('tab-challenges-btn');
   const proposeBtn = document.getElementById('tab-propose-btn');
   const upcomingView = document.getElementById('view-upcoming');
+  const challengesView = document.getElementById('view-challenges');
+  const detailView = document.getElementById('view-challenge-detail');
   const proposeView = document.getElementById('view-propose');
-  if (tabName === 'upcoming') {
-    upcomingBtn.classList.add('active'); upcomingBtn.classList.remove('text-purple-200');
-    proposeBtn.classList.remove('active'); proposeBtn.classList.add('text-purple-200');
-    upcomingView.classList.remove('hidden'); proposeView.classList.add('hidden');
-  } else {
-    proposeBtn.classList.add('active'); proposeBtn.classList.remove('text-purple-200');
-    upcomingBtn.classList.remove('active'); upcomingBtn.classList.add('text-purple-200');
-    proposeView.classList.remove('hidden'); upcomingView.classList.add('hidden');
+
+  // Reset all buttons
+  [upcomingBtn, challengesBtn, proposeBtn].forEach(btn => {
+    if (btn) {
+      btn.classList.remove('active');
+      btn.classList.add('text-purple-200');
+    }
+  });
+
+  // Hide all views
+  [upcomingView, challengesView, detailView, proposeView].forEach(v => {
+    if (v) v.classList.add('hidden');
+  });
+
+  // Activate selected
+  if (tabName === 'upcoming' && upcomingBtn && upcomingView) {
+    upcomingBtn.classList.add('active');
+    upcomingBtn.classList.remove('text-purple-200');
+    upcomingView.classList.remove('hidden');
+  } else if (tabName === 'challenges' && challengesBtn && challengesView) {
+    challengesBtn.classList.add('active');
+    challengesBtn.classList.remove('text-purple-200');
+    challengesView.classList.remove('hidden');
+    loadChallenges();
+  } else if (tabName === 'propose' && proposeBtn && proposeView) {
+    proposeBtn.classList.add('active');
+    proposeBtn.classList.remove('text-purple-200');
+    proposeView.classList.remove('hidden');
   }
 }
-
 /* ---------- Load spins ---------- */
 async function loadSpins() {
   const loading = document.getElementById('loading-spins');
@@ -887,3 +909,348 @@ document.addEventListener('keydown', (e) => {
     if (waModal && !waModal.classList.contains('hidden')) closeWAGroupModal();
   }
 });
+/* =========================================================
+   CHALLENGES — Part A (list + detail view)
+   ========================================================= */
+
+let challengesData = [];
+let currentChallengeDetail = null;
+
+async function loadChallenges() {
+  const loading = document.getElementById('challenges-loading');
+  const list = document.getElementById('challenges-list');
+  const empty = document.getElementById('challenges-empty');
+
+  if (loading) loading.classList.remove('hidden');
+  if (list) list.innerHTML = '';
+  if (empty) empty.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/challenges');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    challengesData = data.challenges || [];
+    renderChallenges();
+  } catch (err) {
+    if (list) {
+      list.innerHTML = `
+        <div class="bg-red-50 border border-red-200 rounded-xl p-5 text-center text-red-800 md:col-span-2">
+          <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+          <p class="font-bold">Could not load challenges</p>
+          <p class="text-xs mt-1">${escapeHtml(err.message)}</p>
+        </div>`;
+    }
+  } finally {
+    if (loading) loading.classList.add('hidden');
+  }
+}
+
+function renderChallenges() {
+  const list = document.getElementById('challenges-list');
+  const empty = document.getElementById('challenges-empty');
+
+  if (!challengesData || challengesData.length === 0) {
+    if (list) list.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    return;
+  }
+  if (empty) empty.classList.add('hidden');
+
+  list.innerHTML = challengesData.map(renderChallengeCard).join('');
+}
+
+function renderChallengeCard(c) {
+  const colorClass = {
+    red:    'from-red-500 to-red-600',
+    purple: 'from-purple-600 to-purple-700',
+    blue:   'from-blue-500 to-blue-600',
+    green:  'from-emerald-500 to-emerald-600',
+    amber:  'from-amber-500 to-amber-600'
+  }[c.badgeColor] || 'from-clubPurple to-clubBlue';
+
+  const typeLabel = {
+    distance: 'Distance',
+    monthly: 'Monthly',
+    series: 'Series',
+    custom: 'Custom'
+  }[c.type] || c.type;
+
+  const typeIcon = {
+    distance: 'fa-route',
+    monthly: 'fa-calendar-check',
+    series: 'fa-list-check',
+    custom: 'fa-star'
+  }[c.type] || 'fa-trophy';
+
+  let targetLine = '';
+  if (c.type === 'distance' && c.targetKm) {
+    targetLine = `Target: <strong>${c.targetKm} km</strong>`;
+  } else if (c.type === 'monthly' && c.ridesRequired && c.minDistancePerRide) {
+    targetLine = `${c.ridesRequired} rides · <strong>${c.minDistancePerRide} km minimum</strong> each`;
+  } else if (c.type === 'series') {
+    targetLine = `Complete the full series`;
+  }
+
+  let windowLine = '';
+  if (c.windowStart && c.windowEnd) {
+    windowLine = `<div class="text-xs text-slate-600 mt-1"><i class="fa-regular fa-calendar text-clubBlue mr-1"></i>${escapeHtml(c.windowStart)} → ${escapeHtml(c.windowEnd)}</div>`;
+  }
+
+  const pendingBadge = c.pending
+    ? `<span class="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-amber-300">Pending Review</span>`
+    : '';
+
+  return `
+    <div class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden cursor-pointer"
+         onclick="openChallengeDetail('${c.id}')">
+      <div class="bg-gradient-to-r ${colorClass} px-4 py-3 text-white">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="bg-white/20 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">
+                <i class="fa-solid ${typeIcon} mr-1"></i>${typeLabel}
+              </span>
+              ${pendingBadge}
+            </div>
+            <h3 class="font-black text-lg leading-tight">${escapeHtml(c.title)}</h3>
+            ${c.org ? `<div class="text-xs text-white/80 mt-0.5">${escapeHtml(c.org)}</div>` : ''}
+          </div>
+          <i class="fa-solid fa-chevron-right text-white/60 text-lg mt-1"></i>
+        </div>
+      </div>
+      <div class="p-4 space-y-2">
+        <p class="text-sm text-slate-700">${escapeHtml(c.description || '')}</p>
+        ${targetLine ? `<div class="text-xs text-slate-700 bg-slate-50 rounded px-2 py-1 inline-block"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>${targetLine}</div>` : ''}
+        ${windowLine}
+      </div>
+    </div>`;
+}
+
+async function openChallengeDetail(challengeId) {
+  // Switch views
+  document.getElementById('view-challenges').classList.add('hidden');
+  document.getElementById('view-challenge-detail').classList.remove('hidden');
+
+  const header = document.getElementById('challenge-detail-header');
+  const rulesList = document.getElementById('challenge-rules-list');
+  const linkContainer = document.getElementById('challenge-link-container');
+  const yourProgress = document.getElementById('challenge-your-progress');
+  const leaderboard = document.getElementById('challenge-leaderboard');
+
+  header.innerHTML = `<div class="p-5 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin text-3xl"></i></div>`;
+  rulesList.innerHTML = '';
+  linkContainer.innerHTML = '';
+  yourProgress.innerHTML = '';
+  leaderboard.innerHTML = '';
+
+  try {
+    const res = await fetch('/api/challenges?id=' + encodeURIComponent(challengeId));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const { challenge, entries } = await res.json();
+    currentChallengeDetail = { challenge, entries };
+    renderChallengeDetailHeader(challenge);
+    renderChallengeRules(challenge);
+    renderChallengeYourProgress(challenge, entries);
+    renderChallengeLeaderboard(challenge, entries);
+  } catch (err) {
+    header.innerHTML = `
+      <div class="bg-red-50 p-5 text-red-800">
+        <p class="font-bold">Could not load challenge</p>
+        <p class="text-xs mt-1">${escapeHtml(err.message)}</p>
+      </div>`;
+  }
+}
+
+function renderChallengeDetailHeader(c) {
+  const colorClass = {
+    red:    'from-red-500 to-red-600',
+    purple: 'from-purple-600 to-purple-700',
+    blue:   'from-blue-500 to-blue-600',
+    green:  'from-emerald-500 to-emerald-600',
+    amber:  'from-amber-500 to-amber-600'
+  }[c.badgeColor] || 'from-clubPurple to-clubBlue';
+
+  const typeLabel = { distance: 'Distance', monthly: 'Monthly', series: 'Series', custom: 'Custom' }[c.type] || c.type;
+
+  let target = '';
+  if (c.type === 'distance' && c.targetKm) target = `🎯 Target: ${c.targetKm} km`;
+  else if (c.type === 'monthly' && c.ridesRequired) target = `🎯 ${c.ridesRequired} qualifying rides of ${c.minDistancePerRide} km`;
+  else if (c.type === 'series') target = '🎯 Complete the full series';
+
+  const header = document.getElementById('challenge-detail-header');
+  header.innerHTML = `
+    <div class="bg-gradient-to-r ${colorClass} p-6 text-white">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="bg-white/20 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">${typeLabel}</span>
+        ${c.org ? `<span class="text-xs text-white/90">${escapeHtml(c.org)}</span>` : ''}
+      </div>
+      <h1 class="text-2xl md:text-3xl font-black">${escapeHtml(c.title)}</h1>
+      <p class="text-sm text-white/90 mt-2">${escapeHtml(c.description || '')}</p>
+      ${target ? `<div class="mt-3 inline-block bg-white/20 rounded-lg px-3 py-1.5 text-sm font-bold">${target}</div>` : ''}
+    </div>`;
+}
+
+function renderChallengeRules(c) {
+  const rulesList = document.getElementById('challenge-rules-list');
+  const rules = Array.isArray(c.rules) && c.rules.length
+    ? c.rules
+    : ['No specific rules — see description above.'];
+  rulesList.innerHTML = rules.map(r =>
+    `<li class="flex items-start gap-2">
+       <i class="fa-solid fa-check-circle text-emerald-500 mt-0.5 flex-shrink-0"></i>
+       <span>${escapeHtml(r)}</span>
+     </li>`
+  ).join('');
+
+  const linkContainer = document.getElementById('challenge-link-container');
+  linkContainer.innerHTML = c.link
+    ? `<a href="${c.link}" target="_blank" rel="noopener"
+           class="inline-flex items-center px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-sm font-bold border border-slate-300 transition">
+         <i class="fa-solid fa-arrow-up-right-from-square mr-2 text-clubBlue"></i>
+         Official rules &amp; info
+       </a>`
+    : '';
+}
+
+function renderChallengeYourProgress(challenge, entries) {
+  const box = document.getElementById('challenge-your-progress');
+  const myEntry = currentUserName
+    ? entries.find(e => String(e.memberName).toLowerCase() === currentUserName.toLowerCase())
+    : null;
+
+  if (!currentUserName) {
+    box.innerHTML = `
+      <p class="text-sm text-slate-600 mb-3">Set your name to start tracking this challenge.</p>
+      <button onclick="promptForName()" class="w-full px-4 py-2 bg-clubPurple hover:bg-clubPurpleDark text-white font-bold rounded-lg text-sm">
+        <i class="fa-solid fa-user mr-1"></i> Set My Name
+      </button>`;
+    return;
+  }
+
+  if (!myEntry) {
+    box.innerHTML = `
+      <p class="text-sm text-slate-600 mb-3">You haven't joined this challenge yet.</p>
+      <button onclick="joinChallenge('${challenge.id}')" class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm">
+        <i class="fa-solid fa-plus mr-1"></i> Join Challenge
+      </button>`;
+    return;
+  }
+
+  const progressHtml = getProgressHtml(challenge, myEntry);
+  box.innerHTML = `
+    ${progressHtml}
+    <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+      <button onclick="openLogProgressModal('${challenge.id}')" class="w-full px-4 py-2 bg-clubPurple hover:bg-clubPurpleDark text-white font-bold rounded-lg text-sm">
+        <i class="fa-solid fa-plus-circle mr-1"></i> Log Progress
+      </button>
+      <button onclick="leaveChallenge('${challenge.id}')" class="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm text-xs">
+        <i class="fa-solid fa-right-from-bracket mr-1"></i> Leave challenge
+      </button>
+    </div>`;
+}
+
+function getProgressHtml(challenge, entry) {
+  if (challenge.type === 'distance') {
+    const pct = challenge.targetKm ? Math.min(100, Math.round((entry.totalKm / challenge.targetKm) * 100)) : 0;
+    return `
+      <div class="text-center mb-3">
+        <div class="text-3xl font-black text-clubPurple">${entry.totalKm || 0}</div>
+        <div class="text-xs font-bold text-slate-500 uppercase">of ${challenge.targetKm} km</div>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
+        <div class="bg-gradient-to-r from-clubPurple to-clubBlue h-3 rounded-full transition-all" style="width:${pct}%"></div>
+      </div>
+      <div class="text-center text-xs font-bold text-slate-600">${pct}% complete</div>`;
+  }
+
+  if (challenge.type === 'monthly') {
+    const ridesCount = (entry.rides || []).length;
+    const pct = challenge.ridesRequired ? Math.min(100, Math.round((ridesCount / challenge.ridesRequired) * 100)) : 0;
+    return `
+      <div class="text-center mb-3">
+        <div class="text-3xl font-black text-clubPurple">${ridesCount}</div>
+        <div class="text-xs font-bold text-slate-500 uppercase">of ${challenge.ridesRequired} months</div>
+      </div>
+      <div class="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
+        <div class="bg-gradient-to-r from-clubPurple to-clubBlue h-3 rounded-full transition-all" style="width:${pct}%"></div>
+      </div>
+      <div class="text-center text-xs font-bold text-slate-600">${pct}% complete</div>`;
+  }
+
+  if (challenge.type === 'series') {
+    const ridesCount = (entry.seriesRides || []).length;
+    return `
+      <div class="text-center">
+        <div class="text-3xl font-black text-clubPurple">${ridesCount}</div>
+        <div class="text-xs font-bold text-slate-500 uppercase">Rides logged</div>
+      </div>`;
+  }
+
+  return `<p class="text-sm text-slate-600">Progress tracking available.</p>`;
+}
+
+function renderChallengeLeaderboard(challenge, entries) {
+  const lb = document.getElementById('challenge-leaderboard');
+  if (!entries || entries.length === 0) {
+    lb.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">No entries yet — be the first to join!</p>`;
+    return;
+  }
+
+  // Score each entry, then sort descending
+  const scored = entries.map(e => {
+    let score = 0, display = '';
+    if (challenge.type === 'distance') {
+      score = e.totalKm || 0;
+      display = `${score} km`;
+    } else if (challenge.type === 'monthly') {
+      score = (e.rides || []).length;
+      display = `${score} month${score === 1 ? '' : 's'}`;
+    } else if (challenge.type === 'series') {
+      score = (e.seriesRides || []).length;
+      display = `${score} ride${score === 1 ? '' : 's'}`;
+    } else {
+      score = (e.activities || []).length;
+      display = `${score} log${score === 1 ? '' : 's'}`;
+    }
+    return { entry: e, score, display };
+  }).sort((a, b) => b.score - a.score);
+
+  lb.innerHTML = scored.map((s, idx) => {
+    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+    const isMe = currentUserName && String(s.entry.memberName).toLowerCase() === currentUserName.toLowerCase();
+    return `
+      <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 ${isMe ? 'bg-purple-50 -mx-2 px-2 rounded' : ''}">
+        <div class="flex items-center gap-3">
+          <span class="text-lg font-black text-slate-400 w-8 text-center">${medal}</span>
+          <span class="font-bold text-slate-800 ${isMe ? 'text-clubPurple' : ''}">${escapeHtml(s.entry.memberName)}${isMe ? ' (you)' : ''}</span>
+        </div>
+        <span class="font-black text-slate-700">${s.display}</span>
+      </div>`;
+  }).join('');
+}
+
+function backToChallenges() {
+  document.getElementById('view-challenge-detail').classList.add('hidden');
+  document.getElementById('view-challenges').classList.remove('hidden');
+  loadChallenges();
+}
+
+function promptForName() {
+  const name = prompt('Enter your name:');
+  if (!name || !name.trim()) return;
+  currentUserName = name.trim();
+  localStorage.setItem('braycc_user', currentUserName);
+  if (currentChallengeDetail) {
+    openChallengeDetail(currentChallengeDetail.challenge.id);
+  }
+}
+
+/* Stubs — will be filled in Part B */
+function joinChallenge(id) { alert('Join coming in the next update'); }
+function leaveChallenge(id) { alert('Leave coming in the next update'); }
+function openLogProgressModal(id) { alert('Log progress coming in the next update'); }
+function saveLogProgress() {}
+function closeLogProgressModal() {}
+function openProposeChallengeModal() { alert('Propose coming in the next update'); }
+function closeProposeChallengeModal() {}
+function submitChallengeProposal() {}
