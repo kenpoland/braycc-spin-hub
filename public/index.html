@@ -49,17 +49,24 @@
                     <i class="fa-solid fa-bell"></i><span>Enable Alerts</span>
                 </button>
             </div>
-            <nav class="flex space-x-1 border-t border-purple-800 pt-1">
-                <button id="tab-upcoming-btn" onclick="switchTab('upcoming')" class="tab-btn active flex-1 py-3 px-4 text-center font-semibold text-sm md:text-base rounded-t-lg transition-all flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-calendar-days text-clubBlue"></i>
-                    <span>Upcoming Spins</span>
-                    <span id="spin-count-badge" class="bg-purple-100 text-clubPurple text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
-                </button>
-                <button id="tab-propose-btn" onclick="switchTab('propose')" class="tab-btn flex-1 py-3 px-4 text-center font-semibold text-sm md:text-base rounded-t-lg text-purple-200 hover:text-white hover:bg-purple-800 transition-all flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-circle-plus text-yellow-300"></i>
-                    <span>Propose a Spin</span>
-                </button>
-            </nav>
+           <nav class="flex space-x-1 border-t border-purple-800 pt-1" aria-label="Tabs">
+    <button id="tab-upcoming-btn" onclick="switchTab('upcoming')" class="tab-btn active flex-1 py-3 px-2 text-center font-semibold text-xs md:text-sm rounded-t-lg transition-all duration-150 flex items-center justify-center space-x-1">
+        <i class="fa-solid fa-calendar-days text-clubBlue"></i>
+        <span class="hidden sm:inline">Upcoming Spins</span>
+        <span class="sm:hidden">Spins</span>
+        <span id="spin-count-badge" class="bg-purple-100 text-clubPurple text-xs font-bold px-2 py-0.5 rounded-full ml-1">0</span>
+    </button>
+    <button id="tab-challenges-btn" onclick="switchTab('challenges')" class="tab-btn flex-1 py-3 px-2 text-center font-semibold text-xs md:text-sm rounded-t-lg text-purple-200 hover:text-white hover:bg-purple-800 transition-all duration-150 flex items-center justify-center space-x-1">
+        <i class="fa-solid fa-trophy text-yellow-300"></i>
+        <span class="hidden sm:inline">Challenges</span>
+        <span class="sm:hidden">Challenges</span>
+    </button>
+    <button id="tab-propose-btn" onclick="switchTab('propose')" class="tab-btn flex-1 py-3 px-2 text-center font-semibold text-xs md:text-sm rounded-t-lg text-purple-200 hover:text-white hover:bg-purple-800 transition-all duration-150 flex items-center justify-center space-x-1">
+        <i class="fa-solid fa-circle-plus text-yellow-300"></i>
+        <span class="hidden sm:inline">Propose a Spin</span>
+        <span class="sm:hidden">Propose</span>
+    </button>
+</nav>
         </div>
     </header>
 
@@ -130,7 +137,89 @@
                 <button onclick="switchTab('propose')" class="mt-4 px-5 py-2.5 bg-clubPurple text-white font-bold rounded-lg shadow hover:bg-clubPurpleDark transition">Propose This Spin Now</button>
             </div>
         </section>
+        <!-- ========================================== -->
+        <!-- VIEW 1b: CHALLENGES LIST                    -->
+        <!-- ========================================== -->
+        <section id="view-challenges" class="hidden space-y-6">
 
+            <!-- Header -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-gradient-to-r from-amber-500 to-yellow-500 p-5 text-white">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-xl font-extrabold flex items-center">
+                                <i class="fa-solid fa-trophy mr-2"></i> Club Challenges
+                            </h2>
+                            <p class="text-xs text-white/90 mt-1">Track your progress against Audax Ireland, Rapha, and club-wide challenges.</p>
+                        </div>
+                        <button onclick="openProposeChallengeModal()" class="bg-white text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-lg font-bold text-sm transition flex items-center space-x-1 self-start md:self-auto">
+                            <i class="fa-solid fa-lightbulb"></i>
+                            <span>Propose a Challenge</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading state -->
+            <div id="challenges-loading" class="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-clubPurple mb-3"></i>
+                <p class="font-bold">Loading challenges...</p>
+            </div>
+
+            <!-- List of challenge cards -->
+            <div id="challenges-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+            <!-- Empty state -->
+            <div id="challenges-empty" class="hidden bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
+                <i class="fa-solid fa-trophy text-4xl text-slate-300 mb-3"></i>
+                <p class="font-bold text-lg text-slate-700">No challenges yet</p>
+                <p class="text-sm mt-1">Be the first to propose one!</p>
+            </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 1c: CHALLENGE DETAIL                   -->
+        <!-- ========================================== -->
+        <section id="view-challenge-detail" class="hidden space-y-6">
+
+            <!-- Back button -->
+            <button onclick="backToChallenges()" class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold border border-slate-300 transition">
+                <i class="fa-solid fa-arrow-left mr-1"></i> All Challenges
+            </button>
+
+            <!-- Challenge header -->
+            <div id="challenge-detail-header" class="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden"></div>
+
+            <!-- Rules + your progress -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                    <h3 class="font-extrabold text-slate-900 text-lg mb-3 flex items-center">
+                        <i class="fa-solid fa-list-check text-clubPurple mr-2"></i> How it works
+                    </h3>
+                    <ul id="challenge-rules-list" class="space-y-2 text-sm text-slate-700"></ul>
+                    <div id="challenge-link-container" class="mt-4 pt-4 border-t border-slate-100"></div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                    <h3 class="font-extrabold text-slate-900 text-lg mb-3 flex items-center">
+                        <i class="fa-solid fa-user-check text-emerald-600 mr-2"></i> Your Progress
+                    </h3>
+                    <div id="challenge-your-progress"></div>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h3 class="font-extrabold text-slate-900 text-lg mb-3 flex items-center">
+                    <i class="fa-solid fa-ranking-star text-clubBlue mr-2"></i> Leaderboard
+                </h3>
+                <div id="challenge-leaderboard"></div>
+            </div>
+<!-- ========================================== -->
+        <!-- VIEW 2: PROPOSE A SPIN FORM               -->
+        <!-- ========================================== -->
+        </section>
         <section id="view-propose" class="hidden">
             <div class="bg-white rounded-xl border border-slate-200 shadow-md overflow-hidden">
                 <div class="bg-gradient-to-r from-clubPurple to-clubBlue p-5 text-white">
@@ -469,6 +558,112 @@
                 <div class="bg-slate-50 p-4 flex justify-end border-t">
                     <button type="button" onclick="closeICEViewModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Close</button>
                 </div>
+            </div>
+        </div>
+                <!-- ========================================== -->
+        <!-- LOG PROGRESS MODAL                          -->
+        <!-- ========================================== -->
+        <div id="log-progress-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full">
+                <div class="bg-clubPurple p-4 text-white flex items-center justify-between rounded-t-xl">
+                    <h3 class="font-extrabold flex items-center">
+                        <i class="fa-solid fa-plus-circle mr-2"></i> Log Progress
+                    </h3>
+                    <button onclick="closeLogProgressModal()" class="text-white/80 hover:text-white text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <form id="log-progress-form" onsubmit="event.preventDefault(); saveLogProgress();" class="p-5 space-y-3">
+                    <input type="hidden" id="log-challenge-id">
+                    <div id="log-fields-container"></div>
+                    <div class="flex justify-between pt-3 border-t">
+                        <button type="button" onclick="closeLogProgressModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Cancel</button>
+                        <button type="submit" class="px-5 py-2 bg-clubPurple hover:bg-clubPurpleDark text-white font-bold rounded-lg text-sm">
+                            <i class="fa-solid fa-save mr-1"></i> Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PROPOSE A CHALLENGE MODAL                    -->
+        <!-- ========================================== -->
+        <div id="propose-challenge-modal" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full my-8">
+                <div class="bg-gradient-to-r from-amber-500 to-yellow-500 p-4 text-white flex items-center justify-between rounded-t-xl">
+                    <div>
+                        <h3 class="font-extrabold flex items-center">
+                            <i class="fa-solid fa-lightbulb mr-2"></i> Propose a Challenge
+                        </h3>
+                        <p class="text-xs text-white/90 mt-0.5">Your idea is sent to the club admin for review.</p>
+                    </div>
+                    <button onclick="closeProposeChallengeModal()" class="text-white/80 hover:text-white text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <form id="propose-challenge-form" onsubmit="event.preventDefault(); submitChallengeProposal();" class="p-5 space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Challenge Title <span class="text-red-500">*</span></label>
+                        <input type="text" id="pc-title" required placeholder="e.g., 3000 km in 2026" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Organised by / Inspiration</label>
+                        <input type="text" id="pc-org" placeholder="e.g., Audax Ireland, Rapha, BrayCC" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Challenge Type <span class="text-red-500">*</span></label>
+                        <select id="pc-type" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="distance">Distance — ride a total km within a window</option>
+                            <option value="monthly">Monthly — a qualifying ride each month</option>
+                            <option value="series">Series — complete a set of rides</option>
+                            <option value="custom">Custom — describe it in the rules</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Description <span class="text-red-500">*</span></label>
+                        <textarea id="pc-description" required rows="3" placeholder="A short summary of what the challenge is" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Rules (one per line)</label>
+                        <textarea id="pc-rules" rows="4" placeholder="Ride 100 km every month&#10;Post a photo at each finish&#10;Only club members count" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Start Date</label>
+                            <input type="date" id="pc-window-start" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">End Date</label>
+                            <input type="date" id="pc-window-end" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Reference Link</label>
+                        <input type="url" id="pc-link" placeholder="https://..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="pc-author" required placeholder="e.g., Niall Hassett" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your WhatsApp</label>
+                            <input type="tel" id="pc-phone" placeholder="+353 87 123 4567" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded text-xs text-slate-700">
+                        <i class="fa-solid fa-circle-info text-amber-600 mr-1"></i>
+                        Your proposal is sent to the club admin. Once approved, it appears in the Challenges list.
+                    </div>
+                    <div class="flex justify-between pt-3 border-t">
+                        <button type="button" onclick="closeProposeChallengeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-sm">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-sm flex items-center space-x-1">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Submit for Review</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </main>
