@@ -1117,9 +1117,10 @@ function renderChallengeRules(c) {
 
 function renderChallengeYourProgress(challenge, entries) {
   const box = document.getElementById('challenge-your-progress');
+  renderRwgpsConnectBlock(challenge.id);
+
   const myEntry = currentUserName
     ? entries.find(e => String(e.memberName).toLowerCase() === currentUserName.toLowerCase())
-    renderRwgpsConnectBlock(challenge.id);   // ← NEW
     : null;
 
   if (!currentUserName) {
