@@ -12,7 +12,7 @@ let selectedPaceInForm = 'Yellow';
 let minRidersInForm = 3;
 let pendingRSVP = null;
 let whatsAppConfig = null;
-
+let rwgpsEnabled = false;
 window.addEventListener('DOMContentLoaded', () => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -22,6 +22,7 @@ window.addEventListener('DOMContentLoaded', () => {
   registerServiceWorker();
   loadWhatsAppNumbers();
   loadRwgpsJoinLink();         // ← NEW
+  loadRwgpsConfig();          // ← NEW
   loadSpins();
 });
 
@@ -1028,6 +1029,7 @@ function renderChallengeCard(c) {
 }
 
 async function openChallengeDetail(challengeId) {
+  await loadRwgpsConfig();   // ← NEW
   // Switch views
   document.getElementById('view-challenges').classList.add('hidden');
   document.getElementById('view-challenge-detail').classList.remove('hidden');
@@ -1117,6 +1119,7 @@ function renderChallengeYourProgress(challenge, entries) {
   const box = document.getElementById('challenge-your-progress');
   const myEntry = currentUserName
     ? entries.find(e => String(e.memberName).toLowerCase() === currentUserName.toLowerCase())
+    renderRwgpsConnectBlock(challenge.id);   // ← NEW
     : null;
 
   if (!currentUserName) {
@@ -1190,42 +1193,58 @@ function getProgressHtml(challenge, entry) {
   return `<p class="text-sm text-slate-600">Progress tracking available.</p>`;
 }
 
-function renderChallengeLeaderboard(challenge, entries) {
+async function renderChallengeLeaderboard(challenge, entries) {
   const lb = document.getElementById('challenge-leaderboard');
-  if (!entries || entries.length === 0) {
-    lb.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">No entries yet — be the first to join!</p>`;
+  lb.innerHTML = `<p class="text-sm text-slate-500 text-center py-4"><i class="fa-solid fa-spinner fa-spin"></i> Loading leaderboard...</p>`;
+
+  const start = challenge.windowStart || '1900-01-01';
+  const end = challenge.windowEnd || '2100-12-31';
+
+  let rwgpsMembers = [];
+  if (rwgpsEnabled) {
+    try {
+      const r = await fetch(`/api/rwgps-rides?start=${start}&end=${end}`);
+      if (r.ok) {
+        const d = await r.json();
+        rwgpsMembers = d.members || [];
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  const combined = {};
+  entries.forEach(e => {
+    combined[e.memberName] = {
+      name: e.memberName,
+      manual: scoreEntryValue(challenge, e),
+      rwgps: 0
+    };
+  });
+  rwgpsMembers.forEach(m => {
+    if (!combined[m.memberName]) combined[m.memberName] = { name: m.memberName, manual: 0, rwgps: 0 };
+    combined[m.memberName].rwgps = m.totalKm;
+  });
+
+  const scored = Object.values(combined).map(c => {
+    const value = Math.max(c.manual, c.rwgps);
+    return { name: c.name, value, source: c.rwgps > c.manual ? 'rwgps' : 'manual' };
+  }).filter(c => c.value > 0).sort((a, b) => b.value - a.value);
+
+  if (scored.length === 0) {
+    lb.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">No entries yet — be the first!</p>`;
     return;
   }
 
-  // Score each entry, then sort descending
-  const scored = entries.map(e => {
-    let score = 0, display = '';
-    if (challenge.type === 'distance') {
-      score = e.totalKm || 0;
-      display = `${score} km`;
-    } else if (challenge.type === 'monthly') {
-      score = (e.rides || []).length;
-      display = `${score} month${score === 1 ? '' : 's'}`;
-    } else if (challenge.type === 'series') {
-      score = (e.seriesRides || []).length;
-      display = `${score} ride${score === 1 ? '' : 's'}`;
-    } else {
-      score = (e.activities || []).length;
-      display = `${score} log${score === 1 ? '' : 's'}`;
-    }
-    return { entry: e, score, display };
-  }).sort((a, b) => b.score - a.score);
-
   lb.innerHTML = scored.map((s, idx) => {
     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-    const isMe = currentUserName && String(s.entry.memberName).toLowerCase() === currentUserName.toLowerCase();
+    const isMe = currentUserName && s.name.toLowerCase() === currentUserName.toLowerCase();
     return `
       <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 ${isMe ? 'bg-purple-50 -mx-2 px-2 rounded' : ''}">
         <div class="flex items-center gap-3">
           <span class="text-lg font-black text-slate-400 w-8 text-center">${medal}</span>
-          <span class="font-bold text-slate-800 ${isMe ? 'text-clubPurple' : ''}">${escapeHtml(s.entry.memberName)}${isMe ? ' (you)' : ''}</span>
+          <span class="font-bold text-slate-800 ${isMe ? 'text-clubPurple' : ''}">${escapeHtml(s.name)}${isMe ? ' (you)' : ''}</span>
+          ${s.source === 'rwgps' ? `<span class="text-[9px] bg-orange-100 text-orange-800 font-black uppercase px-1.5 py-0.5 rounded">RWGPS</span>` : ''}
         </div>
-        <span class="font-black text-slate-700">${s.display}</span>
+        <span class="font-black text-slate-700">${Math.round(s.value * 10) / 10} km</span>
       </div>`;
   }).join('');
 }
