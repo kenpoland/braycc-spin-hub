@@ -1,4 +1,4 @@
-const CACHE = 'braycc-v17';
+const CACHE = 'braycc-v19';
 const ASSETS = ['/', '/index.html', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

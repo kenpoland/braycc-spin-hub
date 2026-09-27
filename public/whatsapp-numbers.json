@@ -27,5 +27,10 @@
       "phone": "+353879647579",
       "description": "Issues with this website or the app"
     }
-  ]
+  ],
+    "rwgps": {
+    "joinUrl": "https://ridewithgps.com/auto_approve/Club/14789/2FXjHNWk3tI1bXXFvqllwghG1UFzag65",
+    "buttonLabel": "Join on Ride with GPS",
+    "description": "Get free access to BrayCC routes with turn-by-turn navigation on your phone."
+  }
 }

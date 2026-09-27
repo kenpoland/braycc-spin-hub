@@ -21,6 +21,7 @@ window.addEventListener('DOMContentLoaded', () => {
   wireNotificationButton();
   registerServiceWorker();
   loadWhatsAppNumbers();
+  loadRwgpsJoinLink();         // ← NEW
   loadSpins();
 });
 
@@ -1511,3 +1512,30 @@ document.addEventListener('keydown', (e) => {
   const proposeModal = document.getElementById('propose-challenge-modal');
   if (proposeModal && !proposeModal.classList.contains('hidden')) closeProposeChallengeModal();
 });
+/* ---------- Ride with GPS join link ---------- */
+async function loadRwgpsJoinLink() {
+  try {
+    const res = await fetch('/whatsapp-numbers.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const config = await res.json();
+    const rwgps = config.rwgps;
+    if (!rwgps || !rwgps.joinUrl) return;
+
+    const btn = document.getElementById('rwgps-join-btn');
+    if (btn) {
+      btn.href = rwgps.joinUrl;
+      btn.classList.remove('hidden');
+      if (rwgps.buttonLabel) {
+        btn.innerHTML = `<i class="fa-solid fa-person-biking"></i><span>${escapeHtml(rwgps.buttonLabel)}</span>`;
+      }
+    }
+
+    const footerLink = document.getElementById('rwgps-footer-link');
+    if (footerLink) {
+      footerLink.href = rwgps.joinUrl;
+      footerLink.classList.remove('hidden');
+    }
+  } catch (e) {
+    console.warn('RWGPS join link not configured:', e.message);
+  }
+}
