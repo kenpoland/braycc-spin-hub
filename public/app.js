@@ -1245,12 +1245,263 @@ function promptForName() {
   }
 }
 
-/* Stubs — will be filled in Part B */
-function joinChallenge(id) { alert('Join coming in the next update'); }
-function leaveChallenge(id) { alert('Leave coming in the next update'); }
-function openLogProgressModal(id) { alert('Log progress coming in the next update'); }
-function saveLogProgress() {}
-function closeLogProgressModal() {}
-function openProposeChallengeModal() { alert('Propose coming in the next update'); }
-function closeProposeChallengeModal() {}
-function submitChallengeProposal() {}
+/* =========================================================
+   CHALLENGES — Part B (join, log, leave, propose)
+   ========================================================= */
+
+async function joinChallenge(challengeId) {
+  if (!currentUserName) {
+    const name = prompt('Enter your name to join this challenge:');
+    if (!name || !name.trim()) return;
+    currentUserName = name.trim();
+    localStorage.setItem('braycc_user', currentUserName);
+  }
+  try {
+    const res = await fetch('/api/challenges?action=join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ challengeId, memberName: currentUserName })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    // Reload the detail view to show "Your Progress"
+    openChallengeDetail(challengeId);
+  } catch (err) {
+    alert('Could not join: ' + err.message);
+  }
+}
+
+async function leaveChallenge(challengeId) {
+  if (!currentUserName) return;
+  if (!confirm('Leave this challenge? Your progress will be removed.')) return;
+  try {
+    const res = await fetch(
+      '/api/challenges?challengeId=' + encodeURIComponent(challengeId) +
+      '&memberName=' + encodeURIComponent(currentUserName),
+      { method: 'DELETE' }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    openChallengeDetail(challengeId);
+  } catch (err) {
+    alert('Could not leave: ' + err.message);
+  }
+}
+
+/* ---------- Log progress modal ---------- */
+function openLogProgressModal(challengeId) {
+  const challenge = currentChallengeDetail && currentChallengeDetail.challenge;
+  if (!challenge) return;
+  document.getElementById('log-challenge-id').value = challengeId;
+  document.getElementById('log-fields-container').innerHTML = buildLogFields(challenge);
+  document.getElementById('log-progress-modal').classList.remove('hidden');
+}
+
+function closeLogProgressModal() {
+  document.getElementById('log-progress-modal').classList.add('hidden');
+}
+
+function buildLogFields(challenge) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (challenge.type === 'distance') {
+    return `
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date</label>
+        <input type="date" id="log-date" value="${today}" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance (km) <span class="text-red-500">*</span></label>
+        <input type="number" id="log-km" step="0.1" min="0.1" required placeholder="e.g., 42" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Note (optional)</label>
+        <input type="text" id="log-note" placeholder="e.g., Sunday club spin" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+      </div>`;
+  }
+
+  if (challenge.type === 'monthly') {
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return `
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Month <span class="text-red-500">*</span></label>
+        <input type="month" id="log-month" value="${thisMonth}" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+        <p class="text-[11px] text-slate-500 mt-1">The month in which you rode the qualifying brevet.</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance (km) <span class="text-red-500">*</span></label>
+        <input type="number" id="log-distance" min="${challenge.minDistancePerRide || 100}" required placeholder="e.g., ${challenge.minDistancePerRide || 100}" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+        <p class="text-[11px] text-slate-500 mt-1">Minimum ${challenge.minDistancePerRide || 100} km for this challenge.</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Note (optional)</label>
+        <input type="text" id="log-note" placeholder="e.g., Wicklow 200 Permanent" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+      </div>`;
+  }
+
+  if (challenge.type === 'series') {
+    return `
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ride Name <span class="text-red-500">*</span></label>
+        <input type="text" id="log-ride-name" required placeholder="e.g., 200km Brevet — Wicklow" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date</label>
+          <input type="date" id="log-date" value="${today}" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Distance (km)</label>
+          <input type="number" id="log-distance" min="0" placeholder="e.g., 200" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Note (optional)</label>
+        <input type="text" id="log-note" placeholder="e.g., Finished in 11h 20m" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+      </div>`;
+  }
+
+  return `
+    <div>
+      <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Note <span class="text-red-500">*</span></label>
+      <input type="text" id="log-note" required placeholder="Describe what you did" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+    </div>`;
+}
+
+async function saveLogProgress() {
+  if (!currentUserName) { alert('Set your name first.'); return; }
+  const challengeId = document.getElementById('log-challenge-id').value;
+  const challenge = currentChallengeDetail && currentChallengeDetail.challenge;
+  if (!challenge) return;
+
+  try {
+    let url = '/api/challenges?action=';
+    let payload = { challengeId, memberName: currentUserName };
+
+    if (challenge.type === 'distance') {
+      const km = parseFloat(document.getElementById('log-km').value);
+      if (!km || km <= 0) { alert('Enter a distance.'); return; }
+      payload.km = km;
+      payload.date = document.getElementById('log-date').value;
+      payload.note = (document.getElementById('log-note').value || '').trim();
+      url += 'log-distance';
+    } else if (challenge.type === 'monthly') {
+      const month = document.getElementById('log-month').value;
+      const distance = parseFloat(document.getElementById('log-distance').value);
+      if (!month || !distance) { alert('Enter month and distance.'); return; }
+      if (distance < (challenge.minDistancePerRide || 0)) {
+        alert(`Distance must be at least ${challenge.minDistancePerRide} km.`);
+        return;
+      }
+      payload.month = month;
+      payload.distance = distance;
+      payload.note = (document.getElementById('log-note').value || '').trim();
+      url += 'log-ride';
+    } else if (challenge.type === 'series') {
+      const rideName = (document.getElementById('log-ride-name').value || '').trim();
+      if (!rideName) { alert('Enter the ride name.'); return; }
+      payload.rideName = rideName;
+      payload.date = document.getElementById('log-date').value;
+      payload.distance = parseFloat(document.getElementById('log-distance').value) || null;
+      payload.note = (document.getElementById('log-note').value || '').trim();
+      url += 'log-series-ride';
+    } else {
+      payload.note = document.getElementById('log-note').value;
+      alert('Custom challenge logging not yet supported.');
+      return;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    closeLogProgressModal();
+    openChallengeDetail(challengeId);
+  } catch (err) {
+    alert('Could not save: ' + err.message);
+  }
+}
+
+/* ---------- Propose a challenge ---------- */
+function openProposeChallengeModal() {
+  document.getElementById('propose-challenge-form').reset();
+  document.getElementById('pc-author').value = currentUserName || '';
+  document.getElementById('pc-phone').value = localStorage.getItem('braycc_user_phone') || '';
+  document.getElementById('propose-challenge-modal').classList.remove('hidden');
+}
+
+function closeProposeChallengeModal() {
+  document.getElementById('propose-challenge-modal').classList.add('hidden');
+}
+
+async function submitChallengeProposal() {
+  const title = document.getElementById('pc-title').value.trim();
+  const org = document.getElementById('pc-org').value.trim();
+  const type = document.getElementById('pc-type').value;
+  const description = document.getElementById('pc-description').value.trim();
+  const rulesText = document.getElementById('pc-rules').value.trim();
+  const windowStart = document.getElementById('pc-window-start').value || null;
+  const windowEnd = document.getElementById('pc-window-end').value || null;
+  const link = document.getElementById('pc-link').value.trim() || null;
+  const proposedBy = document.getElementById('pc-author').value.trim();
+  const proposedByPhone = document.getElementById('pc-phone').value.trim();
+
+  if (!title || !description || !proposedBy) {
+    alert('Please fill in title, description, and your name.');
+    return;
+  }
+  const rules = rulesText
+    ? rulesText.split('\n').map(r => r.trim()).filter(Boolean)
+    : [];
+
+  try {
+    const res = await fetch('/api/challenges?action=propose', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title, org, type, description, link, rules,
+        windowStart, windowEnd, proposedBy, proposedByPhone
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'HTTP ' + res.status);
+    }
+    closeProposeChallengeModal();
+    alert('Thanks! Your challenge has been sent to the club admin for review. It will appear here once approved.');
+    currentUserName = proposedBy;
+    localStorage.setItem('braycc_user', currentUserName);
+    if (proposedByPhone) localStorage.setItem('braycc_user_phone', proposedByPhone);
+  } catch (err) {
+    alert('Could not submit: ' + err.message);
+  }
+}
+
+/* ---------- Backdrop / ESC close for challenge modals ---------- */
+document.addEventListener('click', (e) => {
+  const logModal = document.getElementById('log-progress-modal');
+  if (logModal && !logModal.classList.contains('hidden') && e.target === logModal) {
+    closeLogProgressModal();
+  }
+  const proposeModal = document.getElementById('propose-challenge-modal');
+  if (proposeModal && !proposeModal.classList.contains('hidden') && e.target === proposeModal) {
+    closeProposeChallengeModal();
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const logModal = document.getElementById('log-progress-modal');
+  if (logModal && !logModal.classList.contains('hidden')) closeLogProgressModal();
+  const proposeModal = document.getElementById('propose-challenge-modal');
+  if (proposeModal && !proposeModal.classList.contains('hidden')) closeProposeChallengeModal();
+});
