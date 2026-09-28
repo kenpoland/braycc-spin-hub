@@ -1,4 +1,4 @@
-const CACHE = 'braycc-v23';
+const CACHE = 'braycc-v24';
 const ASSETS = ['/', '/index.html', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -17,6 +17,9 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
+    // Skip non-http(s) requests — prevents chrome-extension:// and similar from filling the cache
+  if (!url.protocol.startsWith('http')) return;
+
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/functions/')) {
     e.respondWith(fetch(e.request));
     return;
