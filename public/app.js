@@ -249,7 +249,8 @@ function renderSpinCard(spin) {
    const quorumBadge = quorumMet
     ? `<span class="bg-green-100 text-green-800 text-xs font-black px-2 py-0.5 rounded-full border border-green-300"><i class="fa-solid fa-check mr-1"></i> Confirmed (${totalCommitted}/${spin.minRiders} min riders)</span>`
     : `<span class="bg-red-100 text-red-800 text-xs font-black px-2 py-0.5 rounded-full border border-red-300"><i class="fa-solid fa-circle-exclamation mr-1"></i> Needs ${Math.max(0, spin.minRiders - totalCommitted)} more rider(s)</span>`;
-  const waHref = `https://wa.me/${phoneDigits}?text=${encodeURIComponent("Hi " + spin.author + ", I'm asking about the BrayCC spin: " + spin.title)}`;
+    const phoneDigits = String(spin.phone || '').replace(/[^0-9]/g, '');
+    const waHref = `https://wa.me/${phoneDigits}?text=${encodeURIComponent("Hi " + spin.author + ", I'm asking about the BrayCC spin: " + spin.title)}`;
   const hasAnyICE = committedArr.some(c => c.hasICE);
   const isProposer = currentUserName && currentUserName.toLowerCase() === String(spin.author).toLowerCase();
   const iceBtn = (isProposer && hasAnyICE)
