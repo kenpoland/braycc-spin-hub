@@ -18,7 +18,14 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
-        .tab-btn.active { background-color: #FFFFFF; color: #581C87; font-weight: 700; border-bottom: 4px solid #2563EB; }
+                .tab-btn { min-height: 48px; }
+        .tab-btn.active {
+          background-color: #FFFFFF;
+          color: #581C87;
+          font-weight: 700;
+          border-bottom: 4px solid #2563EB;
+          box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+        }
         .pace-badge-Red { background-color: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
         .pace-badge-Orange { background-color: #FFEDD5; color: #9A3412; border: 1px solid #FDBA74; }
         .pace-badge-Yellow { background-color: #FEF9C3; color: #854D0E; border: 1px solid #FDE047; }
@@ -77,18 +84,32 @@
 
     <main class="flex-grow max-w-5xl w-full mx-auto p-4 md:p-6">
 
-        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm mb-6 text-slate-800 text-sm space-y-2">
-            <div class="flex items-start">
-                <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-lg mr-3 mt-0.5"></i>
-                <div>
-                    <span class="font-bold text-amber-900">All-Weather Policy Note:</span>
-                    If you commit to an <span class="font-semibold text-purple-900">All-Weather Spin</span>, you are expected to show up at the meeting point to decide on the route together. <span class="underline decoration-amber-500 decoration-2">Automatic Cancellation</span> applies if Met Éireann issues an active Orange or Red weather warning.
+                <!-- Policy Notes Banner — collapsible -->
+        <div id="policy-banner" class="bg-amber-50 border-l-4 border-amber-500 rounded-r-lg shadow-sm mb-6 text-slate-800 text-sm overflow-hidden">
+            <button onclick="togglePolicyBanner()" type="button"
+                    class="w-full flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-amber-100/60 transition text-left">
+                <div class="flex items-center min-w-0">
+                    <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-base mr-2.5 flex-shrink-0"></i>
+                    <span class="font-semibold text-amber-900 truncate">All-Weather &amp; Group Etiquette policy</span>
+                    <span class="hidden sm:inline ml-2 text-xs text-amber-700/80 font-medium">— tap to expand</span>
                 </div>
-            </div>
-            <div class="flex items-center pt-2 border-t border-amber-200/60 text-slate-700">
-                <i class="fa-solid fa-shield-halved text-clubPurple mr-2"></i>
-                <span class="font-semibold text-slate-900">Group Etiquette:</span>
-                <span class="ml-1 text-slate-800 font-medium">Please show respect to other riders by using mudguards on winter and wet spins.</span>
+                <i id="policy-chevron" class="fa-solid fa-chevron-down text-amber-700 text-sm flex-shrink-0 transition-transform"></i>
+            </button>
+            <div id="policy-body" class="hidden px-4 pb-4 pt-1 space-y-2 border-t border-amber-200/60">
+                <div class="flex items-start pt-2">
+                    <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-lg mr-3 mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <span class="font-bold text-amber-900">All-Weather Policy Note:</span>
+                        If you commit to an <span class="font-semibold text-purple-900">All-Weather Spin</span>, you are expected to show up at the meeting point to decide on the route together. <span class="underline decoration-amber-500 decoration-2">Automatic Cancellation</span> applies if Met Éireann issues an active Orange or Red weather warning.
+                    </div>
+                </div>
+                <div class="flex items-start pt-2 border-t border-amber-200/60 text-slate-700">
+                    <i class="fa-solid fa-shield-halved text-clubPurple mr-2 mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <span class="font-semibold text-slate-900">Group Etiquette:</span>
+                        <span class="ml-1 text-slate-800 font-medium">Please show respect to other riders by using mudguards on winter and wet spins.</span>
+                    </div>
+                </div>
             </div>
         </div>
 

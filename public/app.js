@@ -232,10 +232,10 @@ function renderSpinCard(spin) {
   const mapBtn = spin.mapLink
     ? `<a href="${spin.mapLink}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
          <i class="fa-solid fa-map-location-dot text-clubBlue mr-1.5"></i> Route Map</a>` : '';
-  const shareBtn = `
+    const shareBtn = `
     <button onclick="shareSpin('${spin.id}')" type="button" title="Share this spin"
-            class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
-      <i class="fa-solid fa-share-nodes text-clubBlue mr-1.5"></i> Share
+            class="w-8 h-8 inline-flex items-center justify-center bg-white hover:bg-clubPurple hover:text-white text-clubPurple rounded-lg border border-slate-300 transition flex-shrink-0">
+      <i class="fa-solid fa-share-nodes text-sm"></i>
     </button>`;
   const mudguardBadge = spin.mudguardsRequired
     ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-1 rounded-md border border-slate-300">
@@ -269,14 +269,16 @@ function renderSpinCard(spin) {
 
   return `
     <div data-spin-id="${spin.id}" class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden ${isProposer ? 'ring-2 ring-clubPurple/20' : ''}">
-      <div class="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center space-x-2">
+            <div class="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center space-x-2 flex-wrap">
           <span class="bg-purple-900 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center">
             <i class="${getSpinTypeIcon(spin.type)} mr-1.5"></i> ${escapeHtml(spin.type)}</span>
           <span class="pace-badge-${spin.pace} text-xs font-bold px-2.5 py-1 rounded-md">${spin.pace} Pace</span>
           ${isProposer ? `<span class="bg-purple-100 text-clubPurple text-[10px] font-black uppercase px-2 py-1 rounded border border-purple-300"><i class="fa-solid fa-star mr-1"></i>Yours</span>` : ''}
         </div>
-        <div class="flex items-center space-x-2">${mudguardBadge}${weatherBadge}</div>
+        <div class="flex items-center gap-2">
+          ${mudguardBadge}${weatherBadge}${shareBtn}
+        </div>
       </div>
       <div class="p-5">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -288,7 +290,7 @@ function renderSpinCard(spin) {
               <span><i class="fa-solid fa-route text-clubBlue mr-1"></i> ${spin.distance} km</span>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2">${mapBtn}${shareBtn}${iceBtn}</div>
+                    <div class="flex flex-wrap items-center gap-2">${mapBtn}${iceBtn}</div>
         </div>
 
         <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
@@ -1032,11 +1034,16 @@ function renderChallengeCard(c) {
   const pendingBadge = c.pending
     ? `<span class="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-amber-300">Pending Review</span>`
     : '';
+  const challengeShareBtn = `
+    <button onclick="event.stopPropagation(); shareChallenge('${c.id}');" type="button" title="Share this challenge"
+            class="w-8 h-8 inline-flex items-center justify-center bg-white/20 hover:bg-white/40 text-white rounded-lg transition flex-shrink-0 backdrop-blur-sm">
+      <i class="fa-solid fa-share-nodes text-sm"></i>
+    </button>`;
 
   return `
     <div class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden cursor-pointer"
          onclick="openChallengeDetail('${c.id}')">
-      <div class="bg-gradient-to-r ${colorClass} px-4 py-3 text-white">
+            <div class="bg-gradient-to-r ${colorClass} px-4 py-3 text-white">
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap mb-1">
@@ -1048,7 +1055,10 @@ function renderChallengeCard(c) {
             <h3 class="font-black text-lg leading-tight">${escapeHtml(c.title)}</h3>
             ${c.org ? `<div class="text-xs text-white/80 mt-0.5">${escapeHtml(c.org)}</div>` : ''}
           </div>
-          <i class="fa-solid fa-chevron-right text-white/60 text-lg mt-1"></i>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${challengeShareBtn}
+            <i class="fa-solid fa-chevron-right text-white/60 text-lg mt-1"></i>
+          </div>
         </div>
       </div>
       <div class="p-4 space-y-2">
@@ -1722,4 +1732,75 @@ function handleDeepLink() {
       card.classList.remove('ring-4', 'ring-amber-400', 'ring-offset-2');
     }, 5000);
   }, 400);
+}
+
+/* =========================================================
+   COLLAPSIBLE POLICY BANNER
+   ========================================================= */
+
+function togglePolicyBanner() {
+  const body = document.getElementById('policy-body');
+  const chevron = document.getElementById('policy-chevron');
+  if (!body) return;
+  body.classList.toggle('hidden');
+  if (chevron) {
+    if (body.classList.contains('hidden')) {
+      chevron.classList.remove('rotate-180');
+    } else {
+      chevron.classList.add('rotate-180');
+    }
+  }
+}
+
+/* =========================================================
+   CHALLENGE SHARING
+   ========================================================= */
+
+async function shareChallenge(challengeId) {
+  const challenge = challengesData.find(c => c.id === challengeId);
+  if (!challenge) return;
+
+  const deepLink = `${window.location.origin}/?challenge=${encodeURIComponent(challenge.id)}`;
+
+  const typeLabel = {
+    distance: 'Distance',
+    monthly: 'Monthly',
+    series: 'Series',
+    custom: 'Custom'
+  }[challenge.type] || 'Challenge';
+
+  let targetLine = '';
+  if (challenge.type === 'distance' && challenge.targetKm) {
+    targetLine = `\n🎯 Target: ${challenge.targetKm} km`;
+  } else if (challenge.type === 'monthly' && challenge.ridesRequired && challenge.minDistancePerRide) {
+    targetLine = `\n🎯 ${challenge.ridesRequired} qualifying rides of ${challenge.minDistancePerRide} km`;
+  }
+
+  const message =
+`🏆 BrayCC Challenge: ${challenge.title}
+${challenge.org ? `Organised by ${challenge.org}\n` : ''}${typeLabel}${targetLine}
+
+${challenge.description || ''}
+
+Join in on the club app:
+${deepLink}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `BrayCC Challenge: ${challenge.title}`,
+        text: message
+      });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(message);
+    alert('Challenge details copied to clipboard.');
+  } catch (err) {
+    window.prompt('Copy this text to share:', message);
+  }
 }
