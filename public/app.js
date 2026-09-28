@@ -232,10 +232,11 @@ function renderSpinCard(spin) {
   const mapBtn = spin.mapLink
     ? `<a href="${spin.mapLink}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
          <i class="fa-solid fa-map-location-dot text-clubBlue mr-1.5"></i> Route Map</a>` : '';
-    const shareBtn = `
+      const shareBtn = `
     <button onclick="shareSpin('${spin.id}')" type="button" title="Share this spin"
-            class="w-8 h-8 inline-flex items-center justify-center bg-white hover:bg-clubPurple hover:text-white text-clubPurple rounded-lg border border-slate-300 transition flex-shrink-0">
-      <i class="fa-solid fa-share-nodes text-sm"></i>
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-full text-xs font-bold shadow-sm transition flex-shrink-0">
+      <i class="fa-solid fa-share-nodes text-xs"></i>
+      <span>Share</span>
     </button>`;
   const mudguardBadge = spin.mudguardsRequired
     ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-1 rounded-md border border-slate-300">
@@ -245,10 +246,9 @@ function renderSpinCard(spin) {
          <i class="fa-solid fa-cloud-showers-heavy mr-1"></i> All-Weather</span>`
     : `<span class="bg-sky-100 text-sky-900 border border-sky-300 text-xs font-extrabold px-2.5 py-1 rounded-md">
          <i class="fa-solid fa-sun mr-1"></i> Fair-Weather Only</span>`;
-  const quorumBadge = quorumMet
+   const quorumBadge = quorumMet
     ? `<span class="bg-green-100 text-green-800 text-xs font-black px-2 py-0.5 rounded-full border border-green-300"><i class="fa-solid fa-check mr-1"></i> Confirmed (${totalCommitted}/${spin.minRiders} min riders)</span>`
-    : `<span class="bg-amber-100 text-amber-800 text-xs font-black px-2 py-0.5 rounded-full border border-amber-300"><i class="fa-solid fa-hourglass-half mr-1"></i> Needs ${Math.max(0, spin.minRiders - totalCommitted)} more rider(s)</span>`;
-  const phoneDigits = String(spin.phone || '').replace(/[^0-9]/g, '');
+    : `<span class="bg-red-100 text-red-800 text-xs font-black px-2 py-0.5 rounded-full border border-red-300"><i class="fa-solid fa-circle-exclamation mr-1"></i> Needs ${Math.max(0, spin.minRiders - totalCommitted)} more rider(s)</span>`;
   const waHref = `https://wa.me/${phoneDigits}?text=${encodeURIComponent("Hi " + spin.author + ", I'm asking about the BrayCC spin: " + spin.title)}`;
   const hasAnyICE = committedArr.some(c => c.hasICE);
   const isProposer = currentUserName && currentUserName.toLowerCase() === String(spin.author).toLowerCase();
@@ -995,13 +995,20 @@ function renderChallenges() {
 }
 
 function renderChallengeCard(c) {
-  const colorClass = {
-    red:    'from-red-500 to-red-600',
-    purple: 'from-purple-600 to-purple-700',
-    blue:   'from-blue-500 to-blue-600',
-    green:  'from-emerald-500 to-emerald-600',
-    amber:  'from-amber-500 to-amber-600'
-  }[c.badgeColor] || 'from-clubPurple to-clubBlue';
+  const headerClass = {
+    red:    'bg-red-600',
+    purple: 'bg-purple-700',
+    blue:   'bg-blue-600',
+    green:  'bg-emerald-600',
+    amber:  'bg-amber-500'
+  }[c.badgeColor] || 'bg-clubPurple';
+
+  const typeIcon = {
+    distance: 'fa-bullseye',
+    monthly: 'fa-bicycle',
+    series: 'fa-clover',
+    custom: 'fa-star'
+  }[c.type] || 'fa-trophy';
 
   const typeLabel = {
     distance: 'Distance',
@@ -1010,64 +1017,67 @@ function renderChallengeCard(c) {
     custom: 'Custom'
   }[c.type] || c.type;
 
-  const typeIcon = {
-    distance: 'fa-route',
-    monthly: 'fa-calendar-check',
-    series: 'fa-list-check',
-    custom: 'fa-star'
-  }[c.type] || 'fa-trophy';
-
   let targetLine = '';
+  let targetIcon = 'fa-bullseye';
   if (c.type === 'distance' && c.targetKm) {
-    targetLine = `Target: <strong>${c.targetKm} km</strong>`;
+    targetLine = `${c.targetKm} km`;
   } else if (c.type === 'monthly' && c.ridesRequired && c.minDistancePerRide) {
-    targetLine = `${c.ridesRequired} rides · <strong>${c.minDistancePerRide} km minimum</strong> each`;
+    targetLine = `${c.minDistancePerRide} km per month`;
   } else if (c.type === 'series') {
-    targetLine = `Complete the full series`;
+    targetLine = 'Complete the full series';
+    targetIcon = 'fa-flag-checkered';
+  } else {
+    targetLine = 'See description';
   }
 
-  let windowLine = '';
+  let datesLine = '';
   if (c.windowStart && c.windowEnd) {
-    windowLine = `<div class="text-xs text-slate-600 mt-1"><i class="fa-regular fa-calendar text-clubBlue mr-1"></i>${escapeHtml(c.windowStart)} → ${escapeHtml(c.windowEnd)}</div>`;
+    const fmt = (d) => {
+      const dt = new Date(d + 'T12:00:00');
+      if (isNaN(dt.getTime())) return d;
+      return dt.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+    datesLine = `${fmt(c.windowStart)} – ${fmt(c.windowEnd)}`;
+  } else {
+    datesLine = 'Rolling — no end date';
   }
 
   const pendingBadge = c.pending
-    ? `<span class="bg-amber-100 text-amber-800 text-[10px] font-black uppercase px-2 py-0.5 rounded border border-amber-300">Pending Review</span>`
+    ? `<span class="bg-white/25 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">Pending Review</span>`
     : '';
-  const challengeShareBtn = `
-    <button onclick="event.stopPropagation(); shareChallenge('${c.id}');" type="button" title="Share this challenge"
-            class="w-8 h-8 inline-flex items-center justify-center bg-white/20 hover:bg-white/40 text-white rounded-lg transition flex-shrink-0 backdrop-blur-sm">
-      <i class="fa-solid fa-share-nodes text-sm"></i>
-    </button>`;
 
   return `
     <div class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden cursor-pointer"
          onclick="openChallengeDetail('${c.id}')">
-            <div class="bg-gradient-to-r ${colorClass} px-4 py-3 text-white">
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap mb-1">
-              <span class="bg-white/20 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded">
-                <i class="fa-solid ${typeIcon} mr-1"></i>${typeLabel}
-              </span>
-              ${pendingBadge}
-            </div>
-            <h3 class="font-black text-lg leading-tight">${escapeHtml(c.title)}</h3>
-            ${c.org ? `<div class="text-xs text-white/80 mt-0.5">${escapeHtml(c.org)}</div>` : ''}
+      <div class="${headerClass} px-4 py-3 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          <i class="fa-solid ${typeIcon} text-white text-lg flex-shrink-0"></i>
+          <h3 class="font-black text-white text-base leading-tight truncate">${escapeHtml(c.title)}</h3>
+          ${pendingBadge}
+        </div>
+        <button onclick="event.stopPropagation(); shareChallenge('${c.id}');" type="button" title="Share this challenge"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-full text-xs font-bold shadow-sm transition flex-shrink-0">
+          <i class="fa-solid fa-share-nodes text-xs"></i>
+          <span class="hidden sm:inline">Share</span>
+        </button>
+      </div>
+      <div class="p-4 space-y-3">
+        ${c.org ? `<div class="text-sm text-slate-700"><span class="text-slate-500">Organiser:</span> <strong>${escapeHtml(c.org)}</strong></div>` : ''}
+        <p class="text-sm text-slate-700 leading-snug">${escapeHtml(c.description || '')}</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
+          <div class="flex items-center gap-2 text-slate-700">
+            <i class="fa-solid ${targetIcon} text-red-500"></i>
+            <span><strong>Target:</strong> ${escapeHtml(targetLine)}</span>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
-            ${challengeShareBtn}
-            <i class="fa-solid fa-chevron-right text-white/60 text-lg mt-1"></i>
+          <div class="flex items-center gap-2 text-slate-700">
+            <i class="fa-regular fa-calendar text-slate-500"></i>
+            <span><strong>Dates:</strong> ${escapeHtml(datesLine)}</span>
           </div>
         </div>
       </div>
-      <div class="p-4 space-y-2">
-        <p class="text-sm text-slate-700">${escapeHtml(c.description || '')}</p>
-        ${targetLine ? `<div class="text-xs text-slate-700 bg-slate-50 rounded px-2 py-1 inline-block"><i class="fa-solid fa-bullseye text-red-500 mr-1"></i>${targetLine}</div>` : ''}
-        ${windowLine}
-      </div>
     </div>`;
 }
+
 
 async function openChallengeDetail(challengeId) {
   await loadRwgpsConfig();   // ← NEW
@@ -1804,3 +1814,16 @@ ${deepLink}`;
     window.prompt('Copy this text to share:', message);
   }
 }
+
+/* ---------- PWA indicator badge ---------- */
+(function showPwaBadge() {
+  try {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                      || window.navigator.standalone === true;
+    const badge = document.getElementById('pwa-badge');
+    if (badge && isStandalone) {
+      badge.classList.remove('hidden');
+      badge.classList.add('flex');
+    }
+  } catch (e) { /* silent */ }
+})();

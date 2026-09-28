@@ -36,6 +36,9 @@
         .pace-btn-Yellow.selected { background-color: #CA8A04; color: #FFFFFF; border-color: #A16207; }
         .pace-btn-Green.selected { background-color: #16A34A; color: #FFFFFF; border-color: #15803D; }
         .pace-btn-Blue.selected { background-color: #2563EB; color: #FFFFFF; border-color: #1D4ED8; }
+                /* Spin-type tile checkmark */
+        .tile-check { opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+        input[name="spinType"]:checked + div .tile-check { opacity: 1; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-50">
@@ -55,6 +58,10 @@
                 <button id="enable-notifications" class="hidden sm:flex items-center space-x-2 bg-purple-800 hover:bg-purple-700 px-3 py-2 rounded-lg text-xs font-bold border border-purple-600 transition">
                     <i class="fa-solid fa-bell"></i><span>Enable Alerts</span>
                 </button>
+                                <span id="pwa-badge" class="hidden items-center space-x-1.5 bg-white/15 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-white/30">
+                    <i class="fa-solid fa-desktop"></i>
+                    <span>PWA</span>
+                </span>
                                 <a id="rwgps-join-btn" href="#" target="_blank" rel="noopener"
                    class="hidden sm:flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 px-3 py-2 rounded-lg text-xs font-bold border border-orange-400 transition">
                     <i class="fa-solid fa-person-biking"></i>
@@ -84,28 +91,30 @@
 
     <main class="flex-grow max-w-5xl w-full mx-auto p-4 md:p-6">
 
-                <!-- Policy Notes Banner — collapsible -->
-        <div id="policy-banner" class="bg-amber-50 border-l-4 border-amber-500 rounded-r-lg shadow-sm mb-6 text-slate-800 text-sm overflow-hidden">
+                        <!-- Policy Notes Banner — collapsible -->
+        <div id="policy-banner" class="bg-amber-50 border border-amber-200 rounded-lg shadow-sm mb-5 text-slate-800 text-sm overflow-hidden">
             <button onclick="togglePolicyBanner()" type="button"
-                    class="w-full flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-amber-100/60 transition text-left">
+                    class="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-amber-100/60 transition text-left">
                 <div class="flex items-center min-w-0">
-                    <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-base mr-2.5 flex-shrink-0"></i>
-                    <span class="font-semibold text-amber-900 truncate">All-Weather &amp; Group Etiquette policy</span>
-                    <span class="hidden sm:inline ml-2 text-xs text-amber-700/80 font-medium">— tap to expand</span>
+                    <i class="fa-solid fa-shield-halved text-amber-600 text-base mr-2.5 flex-shrink-0"></i>
+                    <div class="min-w-0">
+                        <div class="font-bold text-amber-900 text-[13px] leading-tight">Spin Policy: All riders are expected to follow the <span class="underline decoration-amber-500 decoration-2">Club Ride Guidelines</span>.</div>
+                        <div class="text-[11px] text-amber-700 mt-0.5 hidden sm:block">Be safe, be respectful, and communicate. — tap to expand</div>
+                    </div>
                 </div>
                 <i id="policy-chevron" class="fa-solid fa-chevron-down text-amber-700 text-sm flex-shrink-0 transition-transform"></i>
             </button>
-            <div id="policy-body" class="hidden px-4 pb-4 pt-1 space-y-2 border-t border-amber-200/60">
-                <div class="flex items-start pt-2">
-                    <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-lg mr-3 mt-0.5 flex-shrink-0"></i>
-                    <div>
+            <div id="policy-body" class="hidden px-4 pb-4 pt-2 space-y-3 border-t border-amber-200/60">
+                <div class="flex items-start">
+                    <i class="fa-solid fa-cloud-sun-rain text-amber-600 text-base mr-3 mt-0.5 flex-shrink-0"></i>
+                    <div class="text-[13px]">
                         <span class="font-bold text-amber-900">All-Weather Policy Note:</span>
                         If you commit to an <span class="font-semibold text-purple-900">All-Weather Spin</span>, you are expected to show up at the meeting point to decide on the route together. <span class="underline decoration-amber-500 decoration-2">Automatic Cancellation</span> applies if Met Éireann issues an active Orange or Red weather warning.
                     </div>
                 </div>
-                <div class="flex items-start pt-2 border-t border-amber-200/60 text-slate-700">
-                    <i class="fa-solid fa-shield-halved text-clubPurple mr-2 mt-0.5 flex-shrink-0"></i>
-                    <div>
+                <div class="flex items-start pt-3 border-t border-amber-200/60 text-slate-700">
+                    <i class="fa-solid fa-shield-halved text-clubPurple mr-3 mt-0.5 flex-shrink-0"></i>
+                    <div class="text-[13px]">
                         <span class="font-semibold text-slate-900">Group Etiquette:</span>
                         <span class="ml-1 text-slate-800 font-medium">Please show respect to other riders by using mudguards on winter and wet spins.</span>
                     </div>
@@ -274,65 +283,79 @@
                         <h3 class="text-lg font-bold text-slate-900 border-b pb-2">Step 1: Choose Spin Category &amp; Schedule</h3>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Select Spin Type <span class="text-red-500">*</span></label>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Road" checked class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-road text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Road</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Off-Road (MTB / Gravel)" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-mountain text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Off-Road (MTB/Gravel)</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Away Day" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-van-shuttle text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Away Day</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Evening Spin" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-moon text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Evening Spin</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Weekday Spin" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-calendar-day text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Weekday Spin</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Audax" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-compass text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Audax</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Touring" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-route text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Touring</span>
                                     </div>
                                 </label>
+
                                 <label class="cursor-pointer">
                                     <input type="radio" name="spinType" value="Virtual" class="peer sr-only">
-                                    <div class="p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                    <div class="relative p-3 border-2 border-slate-200 rounded-lg text-center peer-checked:border-clubPurple peer-checked:bg-purple-50 hover:border-slate-300 transition">
+                                        <i class="fa-solid fa-circle-check tile-check absolute top-2 right-2 text-clubPurple text-base"></i>
                                         <i class="fa-solid fa-laptop text-slate-600 text-lg block mb-1"></i>
                                         <span class="text-xs font-bold text-slate-800">Virtual</span>
                                     </div>
                                 </label>
                             </div>
-                        </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
