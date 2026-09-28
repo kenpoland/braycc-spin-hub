@@ -893,7 +893,7 @@ function wireNotificationButton() {
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js');
+    const reg = await navigator.serviceWorker.register('/sw.js?v=3');
     const existing = await reg.pushManager.getSubscription();
     if (existing) {
       const btn = document.getElementById('enable-notifications');
