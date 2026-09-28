@@ -213,112 +213,10 @@ function renderSpins() {
   }
   noSpinsNotice.classList.add('hidden');
   container.innerHTML = filtered.map(renderSpinCard).join('');
+  handleDeepLink();
 }
 
-function renderSpinCard(spin) {
-  const isCommitted = userRSVPs[spin.id] === 'committed';
-  const isInterested = userRSVPs[spin.id] === 'interested';
-  const committedArr = (spin.committed || []).map(c => typeof c === 'string' ? { name: c } : c);
-  const interestedArr = (spin.interested || []).map(i => typeof i === 'string' ? { name: i } : i);
-  const totalCommitted = committedArr.length;
-  const totalInterested = interestedArr.length;
-  const quorumMet = totalCommitted >= spin.minRiders;
-  const dateObj = new Date(spin.date + 'T' + spin.time);
-  const formattedDate = dateObj.toLocaleDateString('en-IE', {
-    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-  });
-  const mapBtn = spin.mapLink
-    ? `<a href="${spin.mapLink}" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold border border-slate-300 transition">
-         <i class="fa-solid fa-map-location-dot text-clubBlue mr-1.5"></i> Route Map</a>` : '';
-  const mudguardBadge = spin.mudguardsRequired
-    ? `<span class="bg-slate-200 text-slate-800 text-xs font-bold px-2 py-1 rounded-md border border-slate-300">
-         <i class="fa-solid fa-shield-halved text-clubPurple mr-1"></i> Mudguards</span>` : '';
-  const weatherBadge = spin.weatherPolicy === 'All-Weather'
-    ? `<span class="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-extrabold px-2.5 py-1 rounded-md">
-         <i class="fa-solid fa-cloud-showers-heavy mr-1"></i> All-Weather</span>`
-    : `<span class="bg-sky-100 text-sky-900 border border-sky-300 text-xs font-extrabold px-2.5 py-1 rounded-md">
-         <i class="fa-solid fa-sun mr-1"></i> Fair-Weather Only</span>`;
-  const quorumBadge = quorumMet
-    ? `<span class="bg-green-100 text-green-800 text-xs font-black px-2 py-0.5 rounded-full border border-green-300"><i class="fa-solid fa-check mr-1"></i> Confirmed (${totalCommitted}/${spin.minRiders} min riders)</span>`
-    : `<span class="bg-amber-100 text-amber-800 text-xs font-black px-2 py-0.5 rounded-full border border-amber-300"><i class="fa-solid fa-hourglass-half mr-1"></i> Needs ${Math.max(0, spin.minRiders - totalCommitted)} more rider(s)</span>`;
-  const phoneDigits = String(spin.phone || '').replace(/[^0-9]/g, '');
-  const waHref = `https://wa.me/${phoneDigits}?text=${encodeURIComponent("Hi " + spin.author + ", I'm asking about the BrayCC spin: " + spin.title)}`;
-  const hasAnyICE = committedArr.some(c => c.hasICE);
-  const isProposer = currentUserName && currentUserName.toLowerCase() === String(spin.author).toLowerCase();
-  const iceBtn = (isProposer && hasAnyICE)
-    ? `<button onclick="viewICEContacts('${spin.id}')"
-               class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
-         <i class="fa-solid fa-heart-pulse"></i><span>ICE Contacts</span></button>` : '';
-  const proposerBtns = isProposer
-    ? `<button onclick="openWAGroupModal('${spin.id}')"
-               class="px-3 py-1.5 bg-[#25D366] hover:bg-[#1DA851] text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
-         <i class="fa-brands fa-whatsapp"></i><span>WhatsApp Group</span></button>
-       <button onclick="openEditSpinModal('${spin.id}')"
-               class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
-         <i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
-       <button onclick="openConfirmCancel('${spin.id}')"
-               class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
-         <i class="fa-solid fa-trash"></i><span>Cancel</span></button>` : '';
 
-  return `
-    <div class="bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition overflow-hidden ${isProposer ? 'ring-2 ring-clubPurple/20' : ''}">
-      <div class="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center space-x-2">
-          <span class="bg-purple-900 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center">
-            <i class="${getSpinTypeIcon(spin.type)} mr-1.5"></i> ${escapeHtml(spin.type)}</span>
-          <span class="pace-badge-${spin.pace} text-xs font-bold px-2.5 py-1 rounded-md">${spin.pace} Pace</span>
-          ${isProposer ? `<span class="bg-purple-100 text-clubPurple text-[10px] font-black uppercase px-2 py-1 rounded border border-purple-300"><i class="fa-solid fa-star mr-1"></i>Yours</span>` : ''}
-        </div>
-        <div class="flex items-center space-x-2">${mudguardBadge}${weatherBadge}</div>
-      </div>
-      <div class="p-5">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h3 class="text-xl font-black text-slate-900">${escapeHtml(spin.title)}</h3>
-            <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-600 mt-2">
-              <span class="text-purple-800 font-bold"><i class="fa-regular fa-clock text-clubPurple mr-1"></i> ${formattedDate} @ ${spin.time}</span>
-              <span><i class="fa-solid fa-location-dot text-red-500 mr-1"></i> ${escapeHtml(spin.location)}</span>
-              <span><i class="fa-solid fa-route text-clubBlue mr-1"></i> ${spin.distance} km</span>
-            </div>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">${mapBtn}${iceBtn}</div>
-        </div>
-        <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-          <div>
-            <div class="flex items-center space-x-2">
-              <span class="text-xs font-bold text-slate-500">Ride Status:</span>${quorumBadge}</div>
-            <div class="text-xs text-slate-600 mt-1">
-              <span class="font-bold text-slate-800">${totalCommitted}</span> Committed &bull;
-              <span class="font-bold text-slate-800">${totalInterested}</span> Interested</div>
-          </div>
-          <div class="flex items-center justify-between md:justify-end space-x-3">
-            <div class="text-left md:text-right">
-              <span class="block text-[10px] uppercase font-bold text-slate-400">Proposed by</span>
-              <span class="text-xs font-extrabold text-slate-800">${escapeHtml(spin.author)}</span></div>
-            <a href="${waHref}" target="_blank" rel="noopener"
-               class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1">
-              <i class="fa-brands fa-whatsapp text-sm"></i><span>WhatsApp</span></a>
-          </div>
-        </div>
-        <div class="mt-4 bg-slate-50 p-3 rounded-lg border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span class="text-xs font-extrabold text-slate-700 uppercase">Your Attendance:</span>
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <button onclick="toggleRSVP('${spin.id}', 'committed')"
-                    class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 ${isCommitted ? 'bg-emerald-600 text-white shadow' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'}">
-              <i class="fa-solid fa-circle-check"></i><span>Committed (Turning Up)</span></button>
-            <button onclick="toggleRSVP('${spin.id}', 'interested')"
-                    class="flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 ${isInterested ? 'bg-amber-500 text-white shadow' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'}">
-              <i class="fa-solid fa-star"></i><span>Interested</span></button>
-          </div>
-        </div>
-        ${isProposer ? `
-          <div class="mt-3 pt-3 border-t border-dashed border-purple-200 flex flex-wrap gap-2 items-center">
-            <span class="text-[10px] font-black uppercase text-clubPurple">Organiser Tools:</span>
-            ${proposerBtns}
-          </div>` : ''}
-      </div>
-    </div>`;
-}
 
 function getSpinTypeIcon(type) {
   switch (type) {
@@ -1617,4 +1515,78 @@ function scoreEntryValue(challenge, entry) {
   if (challenge.type === 'monthly') return (entry.rides || []).length * (challenge.minDistancePerRide || 0);
   if (challenge.type === 'series') return (entry.seriesRides || []).length * 100;
   return 0;
+}
+
+/* =========================================================
+   SPIN SHARING + DEEP LINKS
+   ========================================================= */
+
+async function shareSpin(spinId) {
+  const spin = spinsData.find(s => s.id === spinId);
+  if (!spin) return;
+
+  const dateObj = new Date(spin.date + 'T' + spin.time);
+  const dateStr = dateObj.toLocaleDateString('en-IE', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+
+  const deepLink = `${window.location.origin}/?spin=${encodeURIComponent(spin.id)}`;
+
+  const message =
+`🚴 BrayCC Spin: ${spin.title}
+📅 ${dateStr} at ${spin.time}
+📍 ${spin.location}
+🏁 ${spin.distance} km · ${spin.pace} pace${spin.mudguardsRequired ? '\n🛡️ Mudguards required' : ''}${spin.weatherPolicy === 'All-Weather' ? '\n🌧️ All-weather spin' : ''}${spin.mapLink ? '\n🗺️ Route: ' + spin.mapLink : ''}
+
+RSVP or see full details:
+${deepLink}`;
+
+  // Native share sheet (mobile, modern desktop)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `BrayCC Spin: ${spin.title}`,
+        text: message
+      });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      // fall through to clipboard
+    }
+  }
+
+  // Fallback: copy to clipboard
+  try {
+    await navigator.clipboard.writeText(message);
+    alert('Spin details copied to clipboard.\n\nPaste into WhatsApp, email, or anywhere you like.');
+  } catch (err) {
+    // Last resort: prompt with text
+    window.prompt('Copy this text to share:', message);
+  }
+}
+
+let deepLinkHandled = false;
+
+function handleDeepLink() {
+  if (deepLinkHandled) return;
+  const params = new URLSearchParams(window.location.search);
+  const spinId = params.get('spin');
+  if (!spinId) return;
+
+  const card = document.querySelector(`[data-spin-id="${spinId}"]`);
+  if (!card) return;
+
+  deepLinkHandled = true;
+
+  setTimeout(() => {
+    try {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (e) {
+      card.scrollIntoView();
+    }
+    card.classList.add('ring-4', 'ring-amber-400', 'ring-offset-2');
+    setTimeout(() => {
+      card.classList.remove('ring-4', 'ring-amber-400', 'ring-offset-2');
+    }, 5000);
+  }, 400);
 }
