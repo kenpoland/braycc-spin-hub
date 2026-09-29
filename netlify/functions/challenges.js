@@ -111,6 +111,75 @@ const SEED_CHALLENGES = [
     createdAt: '2026-01-01T00:00:00.000Z',
     createdBy: 'seed'
   }
+    {
+    id: 'challenge-distance-3000-2026',
+    slug: 'distance-3000-2026',
+    title: '3000 km in 2026',
+    org: 'BrayCC',
+    type: 'distance',
+    windowStart: '2026-01-01',
+    windowEnd: '2026-12-31',
+    targetKm: 3000,
+    unit: 'km',
+    description: 'Ride 3,000 km across the calendar year 2026. Log your rides throughout the year and track progress on the club leaderboard.',
+    rules: [
+      'Ride a total of 3,000 km between 1 January and 31 December 2026.',
+      'Any riding counts — road, gravel, MTB, or virtual (Zwift, etc.).',
+      'Log rides manually, or connect Ride with GPS to auto-sync.',
+      'No time limits per month — build up your total across the year.'
+    ],
+    link: null,
+    badgeColor: 'blue',
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    createdBy: 'seed'
+  },
+  {
+    id: 'challenge-distance-5000-2026',
+    slug: 'distance-5000-2026',
+    title: '5000 km in 2026',
+    org: 'BrayCC',
+    type: 'distance',
+    windowStart: '2026-01-01',
+    windowEnd: '2026-12-31',
+    targetKm: 5000,
+    unit: 'km',
+    description: 'Ride 5,000 km across the calendar year 2026. A solid step up — ideal for regular riders aiming to push the mileage.',
+    rules: [
+      'Ride a total of 5,000 km between 1 January and 31 December 2026.',
+      'Any riding counts — road, gravel, MTB, or virtual.',
+      'Log rides manually, or connect Ride with GPS to auto-sync.',
+      'Averages to ~96 km/week across the year.'
+    ],
+    link: null,
+    badgeColor: 'purple',
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    createdBy: 'seed'
+  },
+  {
+    id: 'challenge-distance-10000-2026',
+    slug: 'distance-10000-2026',
+    title: '10000 km in 2026',
+    org: 'BrayCC',
+    type: 'distance',
+    windowStart: '2026-01-01',
+    windowEnd: '2026-12-31',
+    targetKm: 10000,
+    unit: 'km',
+    description: "Ride 10,000 km across the calendar year 2026. The serious rider's target — averaging ~200 km every week.",
+    rules: [
+      'Ride a total of 10,000 km between 1 January and 31 December 2026.',
+      'Any riding counts — road, gravel, MTB, or virtual.',
+      'Log rides manually, or connect Ride with GPS to auto-sync.',
+      'Averages to ~192 km/week across the year.'
+    ],
+    link: null,
+    badgeColor: 'red',
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    createdBy: 'seed'
+  }
 ];
 
 async function loadData() {
