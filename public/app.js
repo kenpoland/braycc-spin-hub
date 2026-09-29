@@ -197,17 +197,18 @@ async function loadSpins() {
 }
 
 /* ---------- Render ---------- */
-function renderSpins() {
-  const container = document.getElementById('spins-list-container');
-  const noSpinsNotice = document.getElementById('no-spins-notice');
-  const filterType = document.getElementById('filter-type').value;
-  const filterPace = document.getElementById('filter-pace').value;
-  document.getElementById('spin-count-badge').textContent = spinsData.length;
-  const filtered = spinsData.filter((s) => {
-    const mType = filterType === 'ALL' || s.type === filterType;
-    const mPace = filterPace === 'ALL' || s.pace === filterPace;
-    return mType && mPace;
-  });
+  const filtered = spinsData
+    .filter((s) => {
+      const mType = filterType === 'ALL' || s.type === filterType;
+      const mPace = filterPace === 'ALL' || s.pace === filterPace;
+      return mType && mPace;
+    })
+    .sort((a, b) => {
+      // Sort by spin date+time, soonest first
+      const aDate = new Date(a.date + 'T' + (a.time || '00:00'));
+      const bDate = new Date(b.date + 'T' + (b.time || '00:00'));
+      return aDate - bDate;
+    });
   if (filtered.length === 0) {
     container.innerHTML = ''; noSpinsNotice.classList.remove('hidden'); return;
   }
