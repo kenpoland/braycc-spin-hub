@@ -1843,3 +1843,44 @@ ${deepLink}`;
     }
   } catch (e) { /* silent */ }
 })();
+
+/* =========================================================
+   CHALLENGE LINKING
+   ========================================================= */
+
+function toggleChallengePicker() {
+  const checkbox = document.getElementById('prop-is-challenge');
+  const wrap = document.getElementById('challenge-picker-wrap');
+  const select = document.getElementById('prop-challenge-id');
+  if (!checkbox || !wrap) return;
+
+  if (checkbox.checked) {
+    wrap.classList.remove('hidden');
+    populateChallengeDropdown(select);
+  } else {
+    wrap.classList.add('hidden');
+  }
+}
+
+async function populateChallengeDropdown(select) {
+  if (!select) return;
+  select.innerHTML = `<option value="">— Loading challenges... —</option>`;
+
+  try {
+    const res = await fetch('/api/challenges');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const list = (data.challenges || []).filter(c => c.active !== false && !c.pending);
+
+    if (list.length === 0) {
+      select.innerHTML = `<option value="">— No active challenges available —</option>`;
+      return;
+    }
+
+    select.innerHTML = `<option value="">— Choose a challenge —</option>` +
+      list.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.title)}</option>`).join('');
+  } catch (err) {
+    select.innerHTML = `<option value="">— Could not load challenges —</option>`;
+    console.warn('Challenge dropdown error:', err.message);
+  }
+}

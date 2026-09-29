@@ -391,6 +391,25 @@
                         </div>
 
                         <div class="flex justify-end pt-4">
+                                                    <div class="border-t border-slate-200 pt-4">
+                            <label class="flex items-start gap-3 cursor-pointer bg-amber-50 border border-amber-200 rounded-lg p-3 hover:bg-amber-100/60 transition">
+                                <input type="checkbox" id="prop-is-challenge" onchange="toggleChallengePicker()" class="mt-0.5 w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500">
+                                <div class="flex-1">
+                                    <div class="font-bold text-slate-900 text-sm flex items-center">
+                                        <i class="fa-solid fa-trophy text-amber-600 mr-2"></i>
+                                        Is this spin part of an active Challenge?
+                                    </div>
+                                    <div class="text-xs text-slate-600 mt-1">Tick to link this spin to a challenge. Members will see a badge on the spin card.</div>
+                                </div>
+                            </label>
+                            <div id="challenge-picker-wrap" class="hidden mt-3">
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Select Challenge</label>
+                                <select id="prop-challenge-id" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                    <option value="">— Loading challenges... —</option>
+                                </select>
+                                <p class="text-[11px] text-slate-500 mt-1">Only active challenges appear here. Propose a new challenge on the Challenges tab first.</p>
+                            </div>
+                        </div>
                             <button type="button" onclick="goToStep(2)" class="px-6 py-2.5 bg-clubPurple text-white font-bold rounded-lg hover:bg-clubPurpleDark transition">Next: Pace &amp; Requirements &rarr;</button>
                         </div>
                     </div>
