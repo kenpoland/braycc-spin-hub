@@ -201,8 +201,8 @@ async function loadSpins() {
 function renderSpins() {
   const container = document.getElementById('spins-list-container');
   const noSpinsNotice = document.getElementById('no-spins-notice');
-  const filterType = document.getElementById('filter-type').value;
-  const filterPace = document.getElementById('filter-pace').value;
+  const filterType = currentFilterType;
+  const filterPace = currentFilterPace;
   document.getElementById('spin-count-badge').textContent = spinsData.length;
 
   const filtered = spinsData
@@ -727,11 +727,39 @@ function copySuggestedMessage() {
 }
 
 /* ---------- Filters ---------- */
+/* ---------- Filters — chip-based ---------- */
+let currentFilterType = 'ALL';
+let currentFilterPace = 'ALL';
+
 function applyFilters() { renderSpins(); }
-function resetFilters() {
-  document.getElementById('filter-type').value = 'ALL';
-  document.getElementById('filter-pace').value = 'ALL';
+
+function selectTypeChip(type) {
+  currentFilterType = type;
+  document.querySelectorAll('#filter-type-chips button').forEach(btn => {
+    if (btn.dataset.type === type) {
+      btn.className = 'filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white shadow-sm';
+    } else {
+      btn.className = 'filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-slate-200';
+    }
+  });
   renderSpins();
+}
+
+function selectPaceChip(pace) {
+  currentFilterPace = pace;
+  document.querySelectorAll('#filter-pace-chips button').forEach(btn => {
+    if (btn.dataset.pace === pace) {
+      btn.className = 'filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition bg-emerald-600 text-white shadow-sm';
+    } else {
+      btn.className = 'filter-chip flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-slate-200';
+    }
+  });
+  renderSpins();
+}
+
+function resetFilters() {
+  selectTypeChip('ALL');
+  selectPaceChip('ALL');
 }
 
 /* ---------- Form nav ---------- */
