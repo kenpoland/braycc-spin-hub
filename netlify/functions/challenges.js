@@ -110,7 +110,7 @@ const SEED_CHALLENGES = [
     active: true,
     createdAt: '2026-01-01T00:00:00.000Z',
     createdBy: 'seed'
-  }
+  },
     {
     id: 'challenge-distance-3000-2026',
     slug: 'distance-3000-2026',
